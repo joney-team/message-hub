@@ -138,6 +138,9 @@ export function ChatScreen({
                 <MessageBubble
                   message={{ id: 'greeting', seq: -1, direction: 'outbound', text: greeting, attachments: [], sender: null, clientMessageId: null, createdAt: messages[0]?.createdAt ?? new Date().toISOString() }}
                   showHeader
+                  showAvatar
+                  firstOfGroup
+                  lastOfGroup
                   showTime={false}
                   fallbackName={fallbackName}
                   onRetry={onRetry}
@@ -148,6 +151,7 @@ export function ChatScreen({
                 const prev = messages[i - 1];
                 const next = messages[i + 1];
                 const newDay = !prev || !sameDay(prev.createdAt, m.createdAt);
+                const firstOfGroup = shouldShowHeader(m, newDay ? undefined : prev);
                 const lastOfGroup = !next || next.direction !== m.direction || next.sender?.name !== m.sender?.name || !sameDay(next.createdAt, m.createdAt);
                 return (
                   <Fragment key={m.id}>
@@ -156,7 +160,16 @@ export function ChatScreen({
                         {day(new Date(m.createdAt))}
                       </li>
                     )}
-                    <MessageBubble message={m} showHeader={shouldShowHeader(m, newDay ? undefined : prev)} showTime={lastOfGroup} fallbackName={fallbackName} onRetry={onRetry} />
+                    <MessageBubble
+                      message={m}
+                      showHeader={firstOfGroup}
+                      showAvatar={m.direction === 'outbound' && lastOfGroup}
+                      firstOfGroup={firstOfGroup}
+                      lastOfGroup={lastOfGroup}
+                      showTime={lastOfGroup}
+                      fallbackName={fallbackName}
+                      onRetry={onRetry}
+                    />
                   </Fragment>
                 );
               })}
@@ -186,4 +199,3 @@ export function ChatScreen({
     </div>
   );
 }
-

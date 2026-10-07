@@ -93,7 +93,7 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
   };
 
   return (
-    <div className="border-t border-line bg-surface p-2">
+    <div className="border-t border-line bg-surface p-3">
       {pending.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-1.5">
           {pending.map((p) => (
@@ -113,9 +113,9 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
           ))}
         </ul>
       )}
-      <div className="flex items-end gap-1">
+      <div className="flex items-end gap-2">
         {attachments && (
-          <>
+          <div className="flex shrink-0 items-center gap-1">
             <input ref={input} type="file" multiple accept={ACCEPT} onChange={onPick} className="sr-only" tabIndex={-1} aria-hidden="true" />
             <input ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" onChange={onPick} className="sr-only" tabIndex={-1} aria-hidden="true" />
             <button
@@ -136,7 +136,7 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
             >
               <Camera width={20} height={20} aria-hidden="true" />
             </button>
-          </>
+          </div>
         )}
         <textarea
           ref={area}
@@ -148,7 +148,7 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
           placeholder={t('composer.placeholder')}
           maxLength={4000}
           data-autofocus=""
-          className="mh-textarea min-w-0 flex-1 resize-none rounded-mh-sm border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          className="mh-textarea min-h-10 min-w-0 flex-1 resize-none rounded-mh-sm border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
         />
         <button
           type="button"

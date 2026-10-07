@@ -55,7 +55,7 @@ Visitor và agent đính kèm file vào tin nhắn. File lưu trên đĩa (`DATA
 
 **BR-6** — Dọn mỗi giờ (một lượt đọc các tin có đính kèm, không quét theo từng file): file không tin nào tham chiếu sau 24 giờ; file trên đĩa không có dòng DB. Xóa channel xóa file trên đĩa.
 
-**BR-7** — Khi attachment được bật, composer có nút file cho mọi loại được hỗ trợ và nút camera riêng chỉ nhận `png`, `jpeg`, `gif`, `webp`; trên thiết bị hỗ trợ, nút camera ưu tiên camera sau. Cả hai dùng chung luồng upload, giới hạn và validation phía server.
+**BR-7** — Khi attachment được bật, composer có nút file cho mọi loại được hỗ trợ và nút camera riêng chỉ nhận `png`, `jpeg`, `gif`, `webp`; trên thiết bị hỗ trợ, nút camera ưu tiên camera sau. Cả hai dùng chung luồng upload, giới hạn và validation phía server. Hai nút media được trình bày thành một nhóm, tách rõ với ô nhập và nút gửi bằng spacing nhất quán.
 
 ### Tiêu chí nghiệm thu
 
@@ -78,6 +78,8 @@ Visitor và agent đính kèm file vào tin nhắn. File lưu trên đĩa (`DATA
 | Service + dọn rác | `src/server/services/files.ts` |
 | Routes | `src/app/api/widget/files`, `src/app/api/v1/files`, `src/app/files/[id]` |
 | UI | `src/widget/components/Composer.tsx` (chọn, kéo-thả, camera), `MessageBubble.tsx` |
+
+Composer dùng khoảng cách nhỏ giữa các nút media cùng nhóm và khoảng cách lớn hơn giữa nhóm media, textarea và nút gửi; textarea một dòng có chiều cao tối thiểu bằng các icon button.
 
 ### Data Model
 

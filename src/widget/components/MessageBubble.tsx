@@ -69,12 +69,18 @@ function Avatar({ name, src }: { name: string; src?: string }) {
 export const MessageBubble = memo(function MessageBubble({
   message,
   showHeader,
+  showAvatar,
+  firstOfGroup,
+  lastOfGroup,
   showTime,
   fallbackName,
   onRetry,
 }: {
   message: ChatMessage;
   showHeader: boolean;
+  showAvatar: boolean;
+  firstOfGroup: boolean;
+  lastOfGroup: boolean;
   showTime: boolean;
   fallbackName: string;
   onRetry: (clientMessageId: string) => void;
@@ -82,14 +88,35 @@ export const MessageBubble = memo(function MessageBubble({
   const { t, time } = useI18n();
   const mine = message.direction === 'inbound';
   const name = message.sender?.name ?? fallbackName;
+  const hasFooter = message.status === 'failed' || message.status === 'sending' || showTime;
+  const groupedCorners = mine
+    ? firstOfGroup && lastOfGroup
+      ? 'rounded-ee-sm'
+      : firstOfGroup
+        ? 'rounded-ee-sm'
+        : lastOfGroup
+          ? 'rounded-se-sm'
+          : 'rounded-se-sm rounded-ee-sm'
+    : firstOfGroup && lastOfGroup
+      ? 'rounded-es-sm'
+      : firstOfGroup
+        ? 'rounded-es-sm'
+        : lastOfGroup
+          ? 'rounded-ss-sm'
+          : 'rounded-ss-sm rounded-es-sm';
+
   return (
     <li className={`flex items-end gap-2 ${mine ? 'flex-row-reverse' : ''}`}>
-      {!mine && (showHeader ? <Avatar name={name} src={message.sender?.avatar} /> : <span className="size-7 shrink-0" aria-hidden="true" />)}
+      {!mine && (
+        <span className={`shrink-0 ${hasFooter ? 'mb-[18px]' : ''}`}>
+          {showAvatar ? <Avatar name={name} src={message.sender?.avatar} /> : <span className="block size-7" aria-hidden="true" />}
+        </span>
+      )}
       <div className={`flex min-w-0 max-w-[85%] flex-col ${mine ? 'items-end' : 'items-start'}`}>
         {!mine && showHeader && <span className="mb-0.5 ms-1 text-xs text-muted">{name}</span>}
         <div
-          className={`min-w-0 max-w-full whitespace-pre-wrap break-words rounded-mh px-3 py-2 text-sm ${
-            mine ? 'rounded-ee-sm bg-brand text-brand-fg' : 'rounded-es-sm bg-surface-2 text-fg'
+          className={`min-w-0 max-w-full whitespace-pre-wrap break-words rounded-mh px-3 py-2 text-sm ${groupedCorners} ${
+            mine ? 'bg-brand text-brand-fg' : 'bg-surface-2 text-fg'
           } ${message.status === 'sending' ? 'opacity-70' : ''}`}
         >
           {message.text && <Text text={message.text} />}

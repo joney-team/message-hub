@@ -71,6 +71,8 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **BR-8** — `visitors.lastSeenAt` cập nhật tối đa mỗi phút. `MESSAGE_RETENTION_DAYS > 0` xóa visitor không hoạt động quá hạn (kèm tin nhắn).
 
+**BR-9** — Các tin liên tiếp cùng hướng, cùng sender và cùng ngày được vẽ thành một nhóm: tên sender ở tin đầu, avatar ở tin cuối, timestamp ở cuối nhóm và góc bubble nối theo vị trí đầu/giữa/cuối.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Visitor A không đọc được tin của visitor B dù cùng channel; thiếu/sai token → 401 (`tests/widget-api.test.ts`).
@@ -96,6 +98,8 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 | Admin routes | `src/app/api/v1/visitors/**` |
 | Rate limit | `src/server/http/rate-limit.ts` |
 | UI | `src/widget/ChatApp.tsx`, `components/`, `useSession.ts`, `useChat.ts`, `reducer.ts`, `stream.ts`, `sse.ts`, `linkify.ts` |
+
+`ChatScreen.tsx` xác định ranh giới nhóm theo direction, sender name và ngày; `MessageBubble.tsx` dùng ranh giới đó để đặt header, avatar, timestamp và kiểu bo góc.
 
 ### Data Model
 
