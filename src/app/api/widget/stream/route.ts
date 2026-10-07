@@ -3,6 +3,7 @@ import { handle, tooManyRequests } from '@/server/http/errors';
 import { hub, type HubEvent } from '@/server/realtime/hub';
 import { latestSeq, listMessagesAfter, serializeMessage } from '@/server/services/messages';
 import { touchVisitor } from '@/server/services/sessions';
+import { debug } from '@/server/log';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ export const GET = handle((req) => {
         if (closed) return;
         closed = true;
         cleanup();
+        debug('sse.disconnected', { visitorId: visitor.id, streams: hub.countFor(visitor.id) });
         try {
           controller.close();
         } catch {
@@ -77,6 +79,7 @@ export const GET = handle((req) => {
           // Too many to replay in one go: tell the client to reload history, then continue live.
           write('event: resync\ndata: {}\n\n');
           last = latestSeq(visitor.id);
+          debug('sse.resync', { visitorId: visitor.id, resumeFrom });
         } else {
           for (const m of missed) {
             const dto = serializeMessage(m);
@@ -85,6 +88,7 @@ export const GET = handle((req) => {
         }
       }
       write(': connected\n\n');
+      debug('sse.connected', { visitorId: visitor.id, resumed: resumeFrom !== null, streams: hub.countFor(visitor.id) });
     },
     cancel() {
       cleanup();

@@ -143,3 +143,7 @@ sequenceDiagram
 ### Vấn đề đã biết
 
 - Lịch sử hội thoại của nhiều thiết bị cho cùng một người dùng chưa hỗ trợ (cần định danh có chữ ký).
+
+### Vận hành
+
+Khi `DEBUG_LOG=true`, server ghi JSON một dòng cho request API, xác thực từ chối, session/message, SSE connect/disconnect/resync và rate limit. Log không chứa token, API key, text tin nhắn, profile, IP hay URL.

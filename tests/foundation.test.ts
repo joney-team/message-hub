@@ -7,6 +7,7 @@ import { channels, messages, visitors, webhookDeliveries } from '@/server/db/sch
 import { ID_PATTERN, hashToken, isId, newId, newVisitorToken } from '@/server/ids';
 import { requireApiKey, requireVisitor, safeEqual } from '@/server/http/auth';
 import { ApiError, handle } from '@/server/http/errors';
+import { debug } from '@/server/log';
 import { readJson } from '@/server/http/validate';
 import { bearer, insertChannel, insertVisitor, useTestDb } from './helpers';
 
@@ -45,6 +46,33 @@ describe('config', () => {
     const c = loadConfig({ NODE_ENV: 'production', API_KEYS: `a:${KEY}`, MAX_UPLOAD_MB: '2', FILES_BASE_URL: 'https://files.example.com/' });
     expect(c.maxUploadBytes).toBe(2 * 1024 * 1024);
     expect(c.filesBaseUrl).toBe('https://files.example.com');
+  });
+
+  it('enables debug logs only when DEBUG_LOG is true', () => {
+    expect(loadConfig({ NODE_ENV: 'production', API_KEYS: `a:${KEY}` }).debugLog).toBe(false);
+    expect(loadConfig({ NODE_ENV: 'production', API_KEYS: `a:${KEY}`, DEBUG_LOG: 'true' }).debugLog).toBe(true);
+    expect(() => loadConfig({ NODE_ENV: 'production', API_KEYS: `a:${KEY}`, DEBUG_LOG: 'yes' })).toThrow(ConfigError);
+  });
+
+  it('emits structured diagnostics only when enabled', () => {
+    const previous = process.env.DEBUG_LOG;
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      process.env.DEBUG_LOG = 'false';
+      resetConfigForTests();
+      debug('test.event', { value: 1 });
+      expect(spy).not.toHaveBeenCalled();
+
+      process.env.DEBUG_LOG = 'true';
+      resetConfigForTests();
+      debug('test.event', { value: 1 });
+      expect(spy).toHaveBeenCalledWith('[hub] {"level":"debug","event":"test.event","value":1}');
+    } finally {
+      if (previous === undefined) delete process.env.DEBUG_LOG;
+      else process.env.DEBUG_LOG = previous;
+      resetConfigForTests();
+      spy.mockRestore();
+    }
   });
 });
 

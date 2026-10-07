@@ -3,6 +3,7 @@ import { closeDb, getDb } from './server/db/client';
 import { runMigrations } from './server/db/migrate';
 import { startWorker, stopWorker } from './server/queue/worker';
 import { hub } from './server/realtime/hub';
+import { debug } from './server/log';
 
 /** Runs once per server process: configuration check, migrations, webhook worker, graceful shutdown. */
 export function startServer(): void {
@@ -16,17 +17,25 @@ export function startServer(): void {
 }
 
 function boot(): void {
-  getConfig(); // fail fast on bad configuration
+  const config = getConfig(); // fail fast on bad configuration
   runMigrations(getDb());
   startWorker();
+  debug('server.started', {
+    production: config.isProduction,
+    port: config.port,
+    trustedProxies: config.trustedProxies,
+    messageRetentionDays: config.messageRetentionDays,
+  });
 
   let shuttingDown = false;
   const shutdown = async () => {
     if (shuttingDown) return;
     shuttingDown = true;
+    debug('server.stopping', { streams: hub.count() });
     hub.shutdown();
     await stopWorker();
     closeDb();
+    debug('server.stopped', {});
     process.exit(0);
   };
   process.once('SIGTERM', shutdown);

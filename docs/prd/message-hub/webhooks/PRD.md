@@ -97,3 +97,7 @@ Mỗi sự kiện đáng chú ý (tin nhắn mới, visitor mới/cập nhật, 
 
 - URL file trong payload tương đối nếu không đặt `PUBLIC_URL`/`FILES_BASE_URL`.
 - Không chặn đích nội bộ (chủ ý), nhưng không theo redirect.
+
+### Vận hành
+
+Khi `DEBUG_LOG=true`, worker ghi lifecycle, lần gửi, kết quả delivery, retry/thất bại và số bản ghi đã dọn. Log webhook chỉ có `deliveryId`, `channelId`, event, attempt và HTTP status; không chứa URL đích, payload hoặc secret.

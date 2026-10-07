@@ -1,3 +1,5 @@
+import { debug } from '../log';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -39,12 +41,26 @@ export function handle<P = Record<string, never>>(
   fn: (req: Request, params: P) => Promise<Response> | Response,
 ): (req: Request, ctx: RouteContext<P>) => Promise<Response> {
   return async (req, ctx) => {
+    const startedAt = performance.now();
+    const pathname = new URL(req.url).pathname;
     try {
       const params = (await ctx?.params) ?? ({} as P);
-      return await fn(req, params);
+      const response = await fn(req, params);
+      debug('http.request', { method: req.method, pathname, status: response.status, durationMs: Math.round(performance.now() - startedAt) });
+      return response;
     } catch (err) {
-      if (err instanceof ApiError) return errorResponse(err.status, err.code, err.message, err.headers);
+      if (err instanceof ApiError) {
+        debug('http.request', {
+          method: req.method,
+          pathname,
+          status: err.status,
+          code: err.code,
+          durationMs: Math.round(performance.now() - startedAt),
+        });
+        return errorResponse(err.status, err.code, err.message, err.headers);
+      }
       console.error('[hub] unhandled route error:', err instanceof Error ? err.message : 'unknown');
+      debug('http.request', { method: req.method, pathname, status: 500, durationMs: Math.round(performance.now() - startedAt) });
       return errorResponse(500, 'INTERNAL', 'Internal server error');
     }
   };

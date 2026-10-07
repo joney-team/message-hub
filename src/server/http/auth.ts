@@ -4,6 +4,7 @@ import { getConfig } from '../config';
 import { getDb } from '../db/client';
 import { channels, visitors } from '../db/schema';
 import { hashToken } from '../ids';
+import { debug } from '../log';
 import { unauthorized } from './errors';
 
 export function bearerToken(req: Request): string | null {
@@ -23,13 +24,19 @@ export function safeEqual(a: string, b: string): boolean {
 /** Admin API: returns the owner name of the matching API key. */
 export function requireApiKey(req: Request): string {
   const token = bearerToken(req);
-  if (!token) throw unauthorized();
+  if (!token) {
+    debug('auth.api_key.rejected', { reason: 'missing' });
+    throw unauthorized();
+  }
   let owner: string | null = null;
   // Check every key (no early exit) so timing does not reveal which one matched.
   for (const entry of getConfig().apiKeys) {
     if (safeEqual(token, entry.key) && owner === null) owner = entry.owner;
   }
-  if (!owner) throw unauthorized();
+  if (!owner) {
+    debug('auth.api_key.rejected', { reason: 'invalid' });
+    throw unauthorized();
+  }
   return owner;
 }
 
@@ -39,13 +46,19 @@ export type ChannelRow = typeof channels.$inferSelect;
 /** Widget API: resolves the visitor (and its channel) from the bearer token. */
 export function requireVisitor(req: Request): { visitor: VisitorRow; channel: ChannelRow } {
   const token = bearerToken(req);
-  if (!token) throw unauthorized();
+  if (!token) {
+    debug('auth.visitor.rejected', { reason: 'missing' });
+    throw unauthorized();
+  }
   const row = getDb()
     .select({ visitor: visitors, channel: channels })
     .from(visitors)
     .innerJoin(channels, eq(channels.id, visitors.channelId))
     .where(eq(visitors.tokenHash, hashToken(token)))
     .get();
-  if (!row) throw unauthorized();
+  if (!row) {
+    debug('auth.visitor.rejected', { reason: 'invalid' });
+    throw unauthorized();
+  }
   return row;
 }

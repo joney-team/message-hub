@@ -4,6 +4,7 @@ import { getConfig } from '../config';
 import { channels, visitors, webhookDeliveries } from '../db/schema';
 import { sweepFiles } from '../services/files';
 import { signWebhook } from './signature';
+import { debug } from '../log';
 
 export const MAX_ATTEMPTS = 6;
 /** Wait after attempt 1..5 fails; attempt 6 failing marks the delivery `failed`. */
@@ -73,17 +74,20 @@ async function deliverOne(d: Delivery, deps: WorkerDeps): Promise<void> {
       })
       .where(eq(webhookDeliveries.id, d.id))
       .run();
+    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: attempts, status, exhausted });
   };
   if (!channel?.webhookUrl) {
     db.update(webhookDeliveries)
       .set({ status: 'failed', attempts: d.attempts + 1, lastError: 'Channel has no webhook URL' })
       .where(eq(webhookDeliveries.id, d.id))
       .run();
+    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1, status: null, exhausted: true });
     return;
   }
   const body = JSON.stringify({ id: d.id, ...d.payload });
   const timestamp = Math.floor(deps.now() / 1000);
   try {
+    debug('webhook.attempt', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1 });
     const res = await deps.fetch(channel.webhookUrl, {
       method: 'POST',
       redirect: 'manual',
@@ -103,6 +107,7 @@ async function deliverOne(d: Delivery, deps: WorkerDeps): Promise<void> {
         .set({ status: 'delivered', attempts: d.attempts + 1, lastStatus: res.status, lastError: null, deliveredAt: new Date(deps.now()) })
         .where(eq(webhookDeliveries.id, d.id))
         .run();
+      debug('webhook.delivered', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1, status: res.status });
     } else {
       fail(`HTTP ${res.status}`, res.status);
     }
@@ -170,6 +175,7 @@ export function wakeWorker(): void {
   if (!s.running) return;
   clearTimeout(s.timer);
   s.timer = setTimeout(loop, 0);
+  debug('worker.woken', {});
 }
 
 export function startWorker(): void {
@@ -177,11 +183,15 @@ export function startWorker(): void {
   if (s.running) return;
   s.running = true;
   s.timer = setTimeout(loop, 0);
+  debug('worker.started', {});
   s.cleanupTimer = setInterval(() => {
     try {
-      cleanupDelivered();
-      purgeOldConversations();
-      sweepFiles();
+      const deliveries = cleanupDelivered();
+      const conversations = purgeOldConversations();
+      const files = sweepFiles();
+      if (deliveries || conversations || files.rows || files.disk) {
+        debug('worker.cleanup', { deliveries, conversations, fileRows: files.rows, filesOnDisk: files.disk });
+      }
     } catch (err) {
       console.error('[hub] cleanup error:', err instanceof Error ? err.message : 'unknown');
     }
@@ -196,6 +206,7 @@ export async function stopWorker(graceMs = 5000): Promise<void> {
   clearTimeout(s.timer);
   clearInterval(s.cleanupTimer);
   await Promise.race([Promise.allSettled([...s.inflight]), new Promise((r) => setTimeout(r, graceMs))]);
+  debug('worker.stopped', { inFlight: s.inflight.size });
 }
 
 export function resetWorkerForTests(): void {
@@ -204,4 +215,3 @@ export function resetWorkerForTests(): void {
   s.busy.clear();
   s.inflight.clear();
 }
-

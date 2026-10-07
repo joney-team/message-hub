@@ -1,5 +1,6 @@
 import { getConfig } from '../config';
 import { tooManyRequests } from './errors';
+import { debug } from '../log';
 
 interface Bucket {
   count: number;
@@ -79,6 +80,16 @@ export function clientIp(req: Request): string | null {
  */
 export function limitByIp(name: string, req: Request, perIp: { limit: number; windowMs: number }, globalLimit: number): void {
   const ip = clientIp(req);
-  if (ip) limiter(`${name}:ip`, perIp.limit, perIp.windowMs).hit(ip);
-  limiter(`${name}:global`, globalLimit, perIp.windowMs).hit('all');
+  try {
+    if (ip) limiter(`${name}:ip`, perIp.limit, perIp.windowMs).hit(ip);
+  } catch (err) {
+    debug('rate_limit.exceeded', { name, scope: 'ip' });
+    throw err;
+  }
+  try {
+    limiter(`${name}:global`, globalLimit, perIp.windowMs).hit('all');
+  } catch (err) {
+    debug('rate_limit.exceeded', { name, scope: 'global' });
+    throw err;
+  }
 }

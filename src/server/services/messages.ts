@@ -8,6 +8,7 @@ import { newId } from '../ids';
 import { enqueueEvent, messagePayload, visitorPayload } from '../queue/outbox';
 import { wakeWorker } from '../queue/worker';
 import { hub } from '../realtime/hub';
+import { debug } from '../log';
 
 export type MessageRow = typeof messages.$inferSelect;
 type VisitorRow = typeof visitors.$inferSelect;
@@ -131,6 +132,17 @@ export function createMessage(input: NewMessage): { message: MessageRow; created
     wakeWorker();
     const dto = serializeMessage(result.message);
     hub.publish(input.visitor.id, { type: 'message', id: dto.seq, data: dto });
+    debug('message.created', {
+      messageId: result.message.id,
+      seq: dto.seq,
+      channelId: input.channel.id,
+      visitorId: input.visitor.id,
+      direction: input.direction,
+      attachmentCount: input.attachments.length,
+      webhookQueued: Boolean(input.channel.webhookUrl),
+    });
+  } else {
+    debug('message.deduplicated', { messageId: result.message.id, visitorId: input.visitor.id });
   }
   return result;
 }

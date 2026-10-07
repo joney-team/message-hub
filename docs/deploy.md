@@ -58,6 +58,7 @@ Start from [.env.production.example](../.env.production.example).
 | `TRUSTED_PROXIES` | Number of trusted proxy hops appending to `X-Forwarded-For`. Use `0` when exposed directly. |
 | `MAX_UPLOAD_MB` | Ensure every proxy/CDN request-body limit is larger than this value. |
 | `MESSAGE_RETENTION_DAYS` | `0` keeps conversations indefinitely. Select a value that matches your privacy policy. |
+| `DEBUG_LOG` | Default `false`. Set `true` temporarily to emit structured diagnostics for HTTP, sessions, SSE, worker lifecycle, and webhook delivery. It omits credentials, message text, visitor profile, IP addresses, and URLs. |
 
 The image already sets `NODE_ENV=production`, `PORT=4200`, `HOSTNAME=0.0.0.0`, and `DATA_DIR=/data`.
 

@@ -20,6 +20,7 @@ const envSchema = z.object({
     .optional(),
   TRUSTED_PROXIES: z.coerce.number().int().min(0).max(10).default(1),
   MESSAGE_RETENTION_DAYS: z.coerce.number().int().min(0).default(0),
+  DEBUG_LOG: z.enum(['true', 'false']).default('false'),
 });
 
 export interface ApiKey {
@@ -38,6 +39,7 @@ export interface Config {
   /** Reverse proxies in front of the app that append to X-Forwarded-For (0 = none, header ignored). */
   trustedProxies: number;
   messageRetentionDays: number;
+  debugLog: boolean;
 }
 
 export class ConfigError extends Error {}
@@ -91,6 +93,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     publicUrl: e.PUBLIC_URL,
     trustedProxies: e.TRUSTED_PROXIES,
     messageRetentionDays: e.MESSAGE_RETENTION_DAYS,
+    debugLog: e.DEBUG_LOG === 'true',
   };
 }
 

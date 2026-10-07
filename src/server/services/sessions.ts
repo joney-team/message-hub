@@ -7,6 +7,7 @@ import { hashToken, newId, newVisitorToken } from '../ids';
 import { enqueueEvent, visitorPayload } from '../queue/outbox';
 import { hub } from '../realtime/hub';
 import { wakeWorker } from '../queue/worker';
+import { debug } from '../log';
 import { getChannel } from './channels';
 import { serializeVisitor, type VisitorDto, type VisitorRow } from './visitors';
 
@@ -74,6 +75,7 @@ export function createSession(
     return v;
   });
   wakeWorker();
+  debug('visitor.created', { channelId, visitorId: row.id, webhookQueued: Boolean(channel.webhookUrl) });
   return { visitor: serializeVisitor(row), token };
 }
 
@@ -98,6 +100,7 @@ export function updateMe(
     return v;
   });
   wakeWorker();
+  debug('visitor.updated', { channelId: channel.id, visitorId: row.id, webhookQueued: Boolean(channel.webhookUrl) });
   return serializeVisitor(row);
 }
 
@@ -105,4 +108,5 @@ export function updateMe(
 export function revokeToken(visitorId: string): void {
   getDb().update(visitors).set({ tokenHash: hashToken(newVisitorToken()) }).where(eq(visitors.id, visitorId)).run();
   hub.publish(visitorId, { type: 'shutdown' }); // close streams opened with the old token
+  debug('visitor.token_revoked', { visitorId });
 }
