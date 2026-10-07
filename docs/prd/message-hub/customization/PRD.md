@@ -93,6 +93,8 @@ related_features: [channels, i18n, widget-sdk]
 | Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
 | Trang thử preview | `public/demo.html` |
 
+Route `/` của Message Hub Studio dùng dynamic rendering để HTML luôn mang cache policy `no-store`; chỉ static assets có content hash mới được cache dài hạn. Điều này tránh deploy mới tiếp tục phục vụ HTML tham chiếu bundle Studio cũ.
+
 Loader dùng chiều rộng viewport hiện tại (`window.innerWidth <= 768`) để chọn `launcher.mobileOffset` và tính lại layout khi cửa sổ resize. Ở chế độ này, khi mở chat, launcher được ẩn và iframe container dùng toàn bộ viewport với chiều cao dynamic viewport; desktop tiếp tục dùng `launcher.offset` và kích thước trong `window`, không phụ thuộc chiều cao viewport.
 
 ### API
