@@ -145,6 +145,7 @@ describe('settings', () => {
     expect(s.theme.color).toBe('#1f2937');
     expect(s.launcher.position).toBe('right');
     expect(s.launcher.offset).toEqual({ x: 20, y: 20 });
+    expect(s.launcher.mobileOffset).toEqual({ x: 16, y: 16 });
     expect(s.window.width).toBeGreaterThan(0);
     expect(s.locales).toContain('en');
     expect(s.preChat).toEqual({ mode: 'off', fields: [] });

@@ -500,7 +500,7 @@ Quy tắc của `PATCH`:
 - Mảng (`locales`, `starters`, `preChat.fields`) bị **thay toàn bộ**.
 - Gửi `null` để xóa một giá trị tùy chọn, ví dụ `{"settings":{"theme":{"logo":null}}}`.
 - Trường lạ hoặc sai kiểu trả lỗi 400 kèm tên trường.
-- Thay đổi về nút chat có hiệu lực trên website khách sau tối đa 2 phút (thời gian cache của thẻ script).
+- Sau khi thay đổi nút chat, reload website khách để thẻ script revalidate bằng ETag và nhận settings mới. Trang đang mở không tự tải lại settings.
 
 ### 7.1 Các nhóm cấu hình
 
@@ -512,7 +512,8 @@ Quy tắc của `PATCH`:
 | | `fontFamily` | Tên font có sẵn trên máy visitor (không tải webfont) | Font hệ thống |
 | | `logo` | URL ảnh `http(s)` | — |
 | `launcher` | `position` | `left`, `right` | `right` |
-| | `offset` | `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 20, y: 20 }` |
+| | `offset` | Vị trí desktop: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 20, y: 20 }` |
+| | `mobileOffset` | Vị trí mobile: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 16, y: 16 }` |
 | | `icon` | URL ảnh thay cho icon mặc định | — |
 | | `label` | Chữ cạnh icon, theo ngôn ngữ | — |
 | | `hidden` | `true` để ẩn nút, tự gọi `MessageHub.open()` | `false` |
@@ -529,7 +530,7 @@ Quy tắc của `PATCH`:
 | `features` | `attachments` | Cho visitor gửi file | `true` |
 | | `sound` | Âm báo tin mới | `true` |
 
-Trên màn hình hẹp (điện thoại), khung chat luôn chiếm toàn màn hình.
+Trên màn hình hẹp (điện thoại), launcher dùng `mobileOffset`; khi mở, khung chat luôn chiếm toàn bộ viewport.
 
 ### 7.2 Nội dung theo ngôn ngữ
 
@@ -824,7 +825,7 @@ Trình duyệt không báo lỗi cho người dùng khi widget bị chặn, nên
    - Reverse proxy hoặc CDN đứng trước Message Hub tự thêm header `X-Frame-Options`. Cần bỏ header này cho đường dẫn `/w/*`.
 5. **Trang HTTPS nhưng script dùng HTTP.** Trình duyệt chặn nội dung hỗn hợp. Production phải dùng `https://message-hub.example.com`.
 6. **Trình chặn quảng cáo.** Thử tắt để loại trừ.
-7. **Thay đổi cấu hình chưa có hiệu lực.** Thẻ script được cache 2 phút.
+7. **Thay đổi cấu hình chưa có hiệu lực.** Reload website khách để `/embed/ch_….js` revalidate bằng ETag. Nếu vẫn nhận nội dung cũ, kiểm tra reverse proxy/CDN có đang ghi đè `Cache-Control: public, no-cache` hay không.
 
 Để thử nhanh mà không cần website: mở `https://message-hub.example.com/demo.html?channel=ch_…`, hoặc mở thẳng khung chat tại `https://message-hub.example.com/w/ch_…`.
 

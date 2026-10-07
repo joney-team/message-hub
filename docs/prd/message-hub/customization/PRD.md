@@ -33,7 +33,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **US-2 — Xem trước:** Là chủ workspace, tôi muốn thấy thay đổi ngay khi sửa, trước khi lưu.
 
-**US-3 — Thương hiệu:** Là chủ workspace, tôi muốn đổi màu, bo góc, font, logo, sáng/tối, vị trí và nhãn nút.
+**US-3 — Thương hiệu:** Là chủ workspace, tôi muốn đổi màu, bo góc, font, logo, sáng/tối, vị trí desktop/mobile và nhãn nút.
 
 **US-4 — Nội dung:** Là chủ workspace, tôi muốn đặt lời chào, bong bóng chào đầu hội thoại và câu hỏi gợi ý theo từng ngôn ngữ.
 
@@ -50,7 +50,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Quy tắc nghiệp vụ
 
-**BR-1** — `ChannelSettings` gồm `theme {color, colorScheme, radius, fontFamily?, logo?}`, `launcher {position, offset, icon?, label?, hidden, zIndex}`, `window {width, height}`, `locales`, `defaultLocale`, `content {brandName, welcomeTitle, welcomeSubtitle, greeting, starters, overrides}`, `preChat {mode, fields[]}`, `features {attachments, sound}`. Giá trị mặc định trong `src/settings/schema.ts`.
+**BR-1** — `ChannelSettings` gồm `theme {color, colorScheme, radius, fontFamily?, logo?}`, `launcher {position, offset, mobileOffset, icon?, label?, hidden, zIndex}`, `window {width, height}`, `locales`, `defaultLocale`, `content {brandName, welcomeTitle, welcomeSubtitle, greeting, starters, overrides}`, `preChat {mode, fields[]}`, `features {attachments, sound}`. `offset` áp dụng trên desktop, `mobileOffset` áp dụng trên mobile; khi mở trên mobile, khung chat phủ toàn bộ viewport. Giá trị mặc định trong `src/settings/schema.ts`.
 
 **BR-2** — Màu là hex 6 ký tự; `fontFamily` chỉ chữ/số/khoảng trắng/dấu phẩy/ngoặc kép/gạch nối; URL logo/icon chỉ `http(s)`; trường lạ bị từ chối. Máy chủ luôn chuẩn hóa đủ trường nên widget không nhận object thiếu. Khi giá trị đã lưu bị hỏng, chỉ phần (section cấp cao nhất) hỏng lùi về mặc định, phần còn lại được giữ, và channel bị ảnh hưởng được ghi log `[hub] channel <id>: stored settings are invalid in […]` (một lần mỗi tiến trình).
 
@@ -87,10 +87,13 @@ related_features: [channels, i18n, widget-sdk]
 | Schema zod + kiểm chéo + merge | `src/settings/schema.ts`, `src/settings/index.ts` |
 | Mặc định thuần cho trình duyệt | `src/settings/defaults.ts` |
 | Theme → biến CSS | `src/widget/theme.ts`, `src/app/globals.css` |
+| Launcher desktop/mobile + khung chat full-screen | `src/loader/loader.js`, `src/loader/build.ts` |
 | Form trước khi chat | `src/widget/components/PreChat.tsx` |
 | `meta` | `src/app/api/v1/meta/route.ts` |
 | Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
 | Trang thử preview | `public/demo.html` |
+
+Loader dùng media query `(max-width: 480px), (max-height: 520px)` để chọn `launcher.mobileOffset`. Ở chế độ này, khi mở chat, launcher được ẩn và iframe container dùng toàn bộ viewport với chiều cao dynamic viewport; desktop tiếp tục dùng `launcher.offset` và kích thước trong `window`.
 
 ### API
 

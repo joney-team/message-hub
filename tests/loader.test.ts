@@ -27,6 +27,17 @@ const shadow = () => root()!.shadowRoot!;
 const button = () => shadow().querySelector('button')!;
 const frame = () => shadow().querySelector('iframe');
 
+function setMobileViewport(mobile: boolean) {
+  window.matchMedia = ((q: string) => ({
+    matches: q === '(max-width: 480px), (max-height: 520px)' ? mobile : false,
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  })) as unknown as typeof window.matchMedia;
+}
+
 beforeEach(() => {
   document.body.innerHTML = '';
   document.documentElement.lang = '';
@@ -182,6 +193,25 @@ describe('launcher settings', () => {
     expect(b.style.color).toMatch(/17, 24, 39|#111827/);
   });
 
+  it('uses the mobile launcher offset and opens the chat across the full viewport', () => {
+    setMobileViewport(true);
+    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+    const b = button();
+    expect(b.style.right).toBe('12px');
+    expect(b.style.bottom).toBe('18px');
+    b.click();
+    const box = frame()!.parentElement as HTMLElement;
+    expect(b.style.display).toBe('none');
+    expect(box.style.top).toBe('0px');
+    expect(box.style.left).toBe('0px');
+    expect(box.style.right).toBe('0px');
+    expect(box.style.bottom).toBe('0px');
+    expect(box.style.width).toBe('100vw');
+    expect(box.style.height).toBe('100dvh');
+    expect(box.style.borderRadius).toBe('0px');
+    expect(box.style.boxShadow).toBe('none');
+  });
+
   it('hidden launcher draws no button but open() still works', () => {
     load(config({ launcher: { hidden: true } }));
     expect(button().style.display).toBe('none');
@@ -294,7 +324,7 @@ describe('postMessage security', () => {
 describe('embed config', () => {
   it('has a complete launcher config even for empty settings', () => {
     const c = config();
-    expect(c.launcher).toMatchObject({ position: 'right', hidden: false, offset: { x: 20, y: 20 } });
+    expect(c.launcher).toMatchObject({ position: 'right', hidden: false, offset: { x: 20, y: 20 }, mobileOffset: { x: 16, y: 16 } });
     expect(c.window).toEqual(DEFAULT_SETTINGS.window);
     expect(c.strings.en.open).toBe('Open chat');
     expect(c.strings.vi.open).toBe('Mở chat');

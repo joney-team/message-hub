@@ -117,11 +117,12 @@ function layout() {
   var s = state;
   var mobile = window.matchMedia(MOBILE).matches;
   var L = c.launcher;
+  var launcherOffset = mobile ? L.mobileOffset : L.offset;
   var side = L.position === 'left' ? 'left' : 'right';
   var other = side === 'left' ? 'right' : 'left';
   var size = 56;
-  css(s.button, { position: 'fixed', bottom: L.offset.y + 'px', zIndex: String(L.zIndex), display: L.hidden || (mobile && s.open) ? 'none' : 'flex' });
-  s.button.style[side] = L.offset.x + 'px';
+  css(s.button, { position: 'fixed', bottom: launcherOffset.y + 'px', zIndex: String(L.zIndex), display: L.hidden || (mobile && s.open) ? 'none' : 'flex' });
+  s.button.style[side] = launcherOffset.x + 'px';
   s.button.style[other] = 'auto';
   css(s.badge, { display: s.unread > 0 ? 'flex' : 'none' });
   if (!s.frameBox) return;
@@ -141,7 +142,18 @@ function layout() {
     pointerEvents: s.open ? 'auto' : 'none',
   });
   if (mobile) {
-    css(box, { top: '0', left: '0', right: '0', bottom: '0', width: '100%', height: '100%', borderRadius: '0', maxWidth: 'none', maxHeight: 'none' });
+    css(box, {
+      top: '0',
+      left: '0',
+      right: '0',
+      bottom: '0',
+      width: '100vw',
+      height: '100dvh',
+      maxWidth: 'none',
+      maxHeight: 'none',
+      borderRadius: '0',
+      boxShadow: 'none',
+    });
   } else {
     var bottom = L.hidden ? L.offset.y : L.offset.y + size + 12;
     css(box, {

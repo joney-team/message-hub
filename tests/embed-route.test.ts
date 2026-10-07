@@ -25,7 +25,7 @@ describe('GET /embed/<channel>.js', () => {
     expect(res.headers.get('content-type')).toContain('text/javascript');
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
-    expect(res.headers.get('cache-control')).toMatch(/max-age=\d+/);
+    expect(res.headers.get('cache-control')).toBe('public, no-cache');
     const body = await res.text();
     expect(body).toContain(ch.id);
     expect(() => new Function(body)).not.toThrow();
@@ -33,11 +33,16 @@ describe('GET /embed/<channel>.js', () => {
     expect((await get(`${ch.id}.js`, { 'if-none-match': etag })).status).toBe(304);
   });
 
-  it('the ETag changes when settings change', async () => {
+  it('returns updated settings when a cached loader revalidates after a settings change', async () => {
     const ch = insertChannel('acme');
-    const a = (await get(`${ch.id}.js`)).headers.get('etag');
-    getDb().update(channels).set({ settings: { theme: { color: '#112233' } } }).run();
-    expect((await get(`${ch.id}.js`)).headers.get('etag')).not.toBe(a);
+    const first = await get(`${ch.id}.js`);
+    const etag = first.headers.get('etag')!;
+    getDb().update(channels).set({ settings: { launcher: { offset: { x: 64, y: 72 } } } }).run();
+
+    const updated = await get(`${ch.id}.js`, { 'if-none-match': etag });
+    expect(updated.status).toBe(200);
+    expect(updated.headers.get('etag')).not.toBe(etag);
+    expect(await updated.text()).toContain('"offset":{"x":64,"y":72}');
   });
 
   it.each(['nope.js', 'ch_short.js', '../etc/passwd', `ch_${'A'.repeat(22)}.js`, `ch_${'A'.repeat(22)}`])('404 for %s', async (file) => {

@@ -743,8 +743,10 @@ function BehaviorTab({
               }
             />
           </Field>
-          <NumberField label="Horizontal offset" min={0} max={400} value={settings.launcher.offset.x} onChange={(value) => update((next) => (next.launcher.offset.x = value))} suffix="px" />
-          <NumberField label="Bottom offset" min={0} max={400} value={settings.launcher.offset.y} onChange={(value) => update((next) => (next.launcher.offset.y = value))} suffix="px" />
+          <NumberField label="Desktop horizontal offset" min={0} max={400} value={settings.launcher.offset.x} onChange={(value) => update((next) => (next.launcher.offset.x = value))} suffix="px" />
+          <NumberField label="Desktop bottom offset" min={0} max={400} value={settings.launcher.offset.y} onChange={(value) => update((next) => (next.launcher.offset.y = value))} suffix="px" />
+          <NumberField label="Mobile horizontal offset" min={0} max={400} value={settings.launcher.mobileOffset.x} onChange={(value) => update((next) => (next.launcher.mobileOffset.x = value))} suffix="px" />
+          <NumberField label="Mobile bottom offset" min={0} max={400} value={settings.launcher.mobileOffset.y} onChange={(value) => update((next) => (next.launcher.mobileOffset.y = value))} suffix="px" />
           <NumberField label="Z-index" min={0} max={2147483647} value={settings.launcher.zIndex} onChange={(value) => update((next) => (next.launcher.zIndex = value))} />
           <Toggle label="Hide default launcher" checked={settings.launcher.hidden} onChange={(value) => update((next) => (next.launcher.hidden = value))} />
         </div>

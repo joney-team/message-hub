@@ -20,7 +20,15 @@ export function loaderConfig(channel: ChannelLike) {
   return {
     channelId: channel.id,
     theme: { color: s.theme.color, fg: readableOn(s.theme.color), radius: RADIUS[s.theme.radius] },
-    launcher: { position: s.launcher.position, offset: s.launcher.offset, icon: s.launcher.icon ?? null, label: s.launcher.label ?? null, hidden: s.launcher.hidden, zIndex: s.launcher.zIndex },
+    launcher: {
+      position: s.launcher.position,
+      offset: s.launcher.offset,
+      mobileOffset: s.launcher.mobileOffset,
+      icon: s.launcher.icon ?? null,
+      label: s.launcher.label ?? null,
+      hidden: s.launcher.hidden,
+      zIndex: s.launcher.zIndex,
+    },
     window: s.window,
     locales: s.locales,
     defaultLocale: s.defaultLocale,

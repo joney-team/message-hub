@@ -6,7 +6,7 @@ import type { ChannelSettings } from './schema';
  */
 export const SETTINGS_DEFAULTS: ChannelSettings = {
   theme: { color: '#1f2937', colorScheme: 'auto', radius: 'md' },
-  launcher: { position: 'right', offset: { x: 20, y: 20 }, hidden: false, zIndex: 2147483000 },
+  launcher: { position: 'right', offset: { x: 20, y: 20 }, mobileOffset: { x: 16, y: 16 }, hidden: false, zIndex: 2147483000 },
   window: { width: 380, height: 640 },
   locales: ['en', 'vi'],
   defaultLocale: 'en',
@@ -30,6 +30,12 @@ function merge(base: unknown, patch: unknown): unknown {
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const FONT = /^[\w\s,'"-]{1,100}$/;
 const oneOf = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
+const launcherOffset = (v: unknown, fallback: { x: number; y: number }): { x: number; y: number } => {
+  if (!isObject(v)) return fallback;
+  const coordinate = (value: unknown, defaultValue: number) =>
+    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 400 ? value : defaultValue;
+  return { x: coordinate(v.x, fallback.x), y: coordinate(v.y, fallback.y) };
+};
 const httpUrl = (v: unknown): string | undefined => {
   if (typeof v !== 'string') return undefined;
   try {
@@ -52,6 +58,8 @@ export function completeSettings(input: unknown): ChannelSettings {
   s.theme.fontFamily = typeof s.theme.fontFamily === 'string' && FONT.test(s.theme.fontFamily) ? s.theme.fontFamily : undefined;
   s.theme.logo = httpUrl(s.theme.logo);
   s.launcher.position = oneOf(s.launcher.position, ['left', 'right'], 'right');
+  s.launcher.offset = launcherOffset(s.launcher.offset, SETTINGS_DEFAULTS.launcher.offset);
+  s.launcher.mobileOffset = launcherOffset(s.launcher.mobileOffset, SETTINGS_DEFAULTS.launcher.mobileOffset);
   s.preChat.mode = oneOf(s.preChat.mode, ['off', 'optional', 'required'], 'off');
   if (!Array.isArray(s.preChat.fields)) s.preChat.fields = [];
   if (!Array.isArray(s.locales) || s.locales.length === 0) s.locales = SETTINGS_DEFAULTS.locales;

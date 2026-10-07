@@ -59,7 +59,7 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 **BR-4** — `/w/[channelId]` trả `Content-Security-Policy: frame-ancestors 'self' <allowedOrigins>` (hoặc `*` khi rỗng). `?preview=1` luôn `*` vì không tạo visitor/không gửi tin.
 
-**BR-5** — `/embed/<id>.js` có `ETag`, `Cache-Control: public, max-age=120`, `nosniff`, `Cross-Origin-Resource-Policy: cross-origin`; id lạ → 404.
+**BR-5** — `/embed/<id>.js` có `ETag`, `Cache-Control: public, no-cache`, `nosniff`, `Cross-Origin-Resource-Policy: cross-origin`; browser/CDN được lưu response nhưng phải revalidate mỗi lần tải trang, settings đổi thì trả loader mới ngay; id lạ → 404.
 
 **BR-6** — Iframe có `sandbox` (scripts, same-origin, forms, popups, downloads) và `title` theo ngôn ngữ.
 

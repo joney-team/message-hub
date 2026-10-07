@@ -19,7 +19,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ file: string }>
   const headers = {
     ETag: etag,
     'Content-Type': 'text/javascript; charset=utf-8',
-    'Cache-Control': 'public, max-age=120',
+    'Cache-Control': 'public, no-cache',
     'X-Content-Type-Options': 'nosniff',
     'Cross-Origin-Resource-Policy': 'cross-origin',
   };

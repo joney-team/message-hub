@@ -148,6 +148,7 @@ describe('normalizeSettings with a bad stored value', () => {
     const s = normalizeSettings(stored, 'ch_broken');
     expect(s.theme).toEqual(DEFAULT_SETTINGS.theme); // the broken section only
     expect(s.launcher).toMatchObject({ position: 'left', hidden: true }); // others kept
+    expect(s.launcher.mobileOffset).toEqual({ x: 16, y: 16 }); // added settings are completed for older rows
     expect(s.content.brandName).toEqual({ en: 'Acme' });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0][0])).toContain('ch_broken');
