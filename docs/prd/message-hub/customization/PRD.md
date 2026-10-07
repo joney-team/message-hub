@@ -20,7 +20,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Tổng quan
 
-Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần. Message Hub cũng có Channel Studio tại `/` để người vận hành thực hiện luồng này trực tiếp bằng API key.
+Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần. Message Hub cũng có Message Hub Studio tại `/` để người vận hành thực hiện luồng này trực tiếp bằng API key.
 
 ### Quyết định sản phẩm
 
@@ -45,7 +45,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Phạm vi
 
-- Trong: `ChannelSettings`, `meta`, Channel Studio, preview, `identify`, `sender`, "đang soạn", ngữ cảnh trang.
+- Trong: `ChannelSettings`, `meta`, Message Hub Studio, preview, `identify`, `sender`, "đang soạn", ngữ cảnh trang.
 - Ngoài: CSS/HTML tùy ý, theme builder.
 
 ### Quy tắc nghiệp vụ
@@ -64,7 +64,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-7** — `MessageHub.identify(profile)` chỉ nhận khóa hợp lệ, giá trị chuỗi/số, tối đa 20 trường; **không xác minh** — không dùng để cấp quyền.
 
-**BR-8** — Channel Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug và iframe preview cho `welcome | prechat | chat`; thay đổi chỉ lưu sau khi API chấp nhận.
+**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug và iframe preview cho `welcome | prechat | chat`; thay đổi chỉ lưu sau khi API chấp nhận.
 
 ### Tiêu chí nghiệm thu
 
@@ -74,7 +74,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **AC-3** — Trang `public/demo.html` áp preview ngay khi bấm Apply và không tạo visitor (đã kiểm Chrome + DB 2026-10-07).
 
-**AC-4** — Channel Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; Save gửi settings đã chỉnh qua management API.
+**AC-4** — Message Hub Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; Save gửi settings đã chỉnh qua management API.
 
 ---
 
@@ -89,7 +89,7 @@ related_features: [channels, i18n, widget-sdk]
 | Theme → biến CSS | `src/widget/theme.ts`, `src/app/globals.css` |
 | Form trước khi chat | `src/widget/components/PreChat.tsx` |
 | `meta` | `src/app/api/v1/meta/route.ts` |
-| Channel Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
+| Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
 | Trang thử preview | `public/demo.html` |
 
 ### API

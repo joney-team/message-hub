@@ -21,6 +21,7 @@ import {
   Type,
   Webhook,
 } from 'lucide-react';
+import Image from 'next/image';
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelSettings, LocalizedText } from '@/settings/schema';
 import { buildMergePatch, copyChannel, formatApiError, parseOrigins, type ApiErrorBody, type ChannelDto, type StudioMeta } from './types';
@@ -259,11 +260,9 @@ export function ChannelStudio() {
     return (
       <main className="studio-login">
         <section className="studio-login-panel">
-          <div className="studio-brand-mark" aria-hidden="true">
-            <MessageCircle size={24} />
-          </div>
+          <Image className="studio-brand-mark" src="/message-hub-mark.svg" alt="" width={76} height={49} priority />
           <p className="studio-kicker">Message Hub</p>
-          <h1>Channel Studio</h1>
+          <h1>Message Hub Studio</h1>
           <p className="studio-login-copy">Inspect, customize and debug every channel owned by an API key.</p>
           <form
             onSubmit={(event) => {
@@ -305,7 +304,7 @@ export function ChannelStudio() {
         <div className="studio-sidebar-head">
           <div>
             <p className="studio-kicker">Message Hub</p>
-            <h1>Channel Studio</h1>
+            <h1>Message Hub Studio</h1>
           </div>
           <div className="studio-toolbar">
             <IconButton label="Refresh channels" onClick={() => void refresh()} disabled={loading}>

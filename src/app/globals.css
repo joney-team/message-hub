@@ -67,7 +67,7 @@ body {
   }
 }
 
-/* Channel Studio */
+/* Message Hub Studio */
 .studio-shell,
 .studio-login {
   --studio-bg: #f4f5f7;
@@ -77,11 +77,11 @@ body {
   --studio-muted: #697077;
   --studio-line: #dfe2e6;
   --studio-line-strong: #c9cdd2;
-  --studio-accent: #176b5b;
-  --studio-accent-hover: #105447;
-  --studio-accent-soft: #e8f3f0;
+  --studio-accent: #0969f6;
+  --studio-accent-hover: #0756cc;
+  --studio-accent-soft: #eaf2ff;
   --studio-danger: #b42318;
-  --studio-focus: #77b9aa;
+  --studio-focus: #76aaff;
   min-height: 100dvh;
   color: var(--studio-text);
   background: var(--studio-bg);
@@ -121,6 +121,7 @@ body {
 
 .studio-login {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 24px;
   background:
@@ -131,7 +132,9 @@ body {
 }
 
 .studio-login-panel {
-  width: min(100%, 440px);
+  width: 440px;
+  max-width: 100%;
+  min-width: 0;
   padding: 40px;
   border: 1px solid var(--studio-line);
   border-radius: 8px;
@@ -139,15 +142,15 @@ body {
   box-shadow: 0 24px 64px rgb(23 25 28 / 10%);
 }
 
+.studio-login-panel form {
+  min-width: 0;
+}
+
 .studio-brand-mark {
-  display: grid;
-  width: 46px;
-  height: 46px;
+  display: block;
+  width: 76px;
+  height: auto;
   margin-bottom: 28px;
-  place-items: center;
-  border-radius: 8px;
-  color: white;
-  background: var(--studio-accent);
 }
 
 .studio-kicker {

@@ -1,4 +1,6 @@
-# Message Hub
+<p align="center">
+  <img src="./public/message-hub-logo.svg" alt="Message Hub" width="420">
+</p>
 
 Message Hub is a self-hosted, embeddable customer chat widget. It runs as a single Next.js application with SQLite, signed webhooks, Server-Sent Events, file attachments, localization, and a framework-agnostic loader.
 

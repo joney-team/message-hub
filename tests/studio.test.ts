@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildMergePatch, copyChannel, formatApiError, parseOrigins, type ChannelDto } from '@/studio/types';
 import { DEFAULT_SETTINGS } from '@/settings';
 
-describe('Channel Studio helpers', () => {
+describe('Message Hub Studio helpers', () => {
   it('normalizes one allowed origin per line', () => {
     expect(parseOrigins(' https://example.com/ \n\nhttps://*.example.com\r\n')).toEqual([
       'https://example.com/',
