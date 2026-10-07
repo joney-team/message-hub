@@ -729,10 +729,13 @@ Lỗi luôn có dạng:
 | `POST /api/v1/channels` | Tạo. Body: `name`, `ref?`, `webhookUrl?`, `allowedOrigins?`, `settings?` |
 | `GET /api/v1/channels/{id}` | Chi tiết |
 | `PATCH /api/v1/channels/{id}` | Sửa từng phần. Gửi `"ref": null` hoặc `"webhookUrl": null` để xóa |
+| `PUT /api/v1/channels/{id}/webhook` | Chỉ thay webhook URL. Body: `{ "webhookUrl": "https://…" }`; gửi `null` để tắt |
 | `DELETE /api/v1/channels/{id}` | Xóa channel cùng toàn bộ visitor, tin nhắn và file (204) |
 | `POST /api/v1/channels/{id}/rotate-secret` | Sinh `webhookSecret` mới. Secret cũ hết hiệu lực ngay |
 
 `allowedOrigins` nhận origin đầy đủ, không có đường dẫn: `https://example.com`, `http://localhost:3000`, hoặc dạng mọi tên miền con `https://*.example.com`. Tối đa 50 mục.
+
+Endpoint `PUT …/webhook` không đổi `webhookSecret`. Các delivery còn `pending` sẽ dùng URL hiện tại của channel ở lần gửi tiếp theo.
 
 `connectedAt` khác `null` nghĩa là thẻ script của channel đã được tải ít nhất một lần.
 

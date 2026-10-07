@@ -24,9 +24,9 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
-# Hot backup from inside the container: docker exec <c> node scripts/backup.mjs /data/backups/<name>
-COPY --from=build --chown=node:node /app/scripts/backup.mjs ./scripts/backup.mjs
-# The standalone output keeps better-sqlite3 only under .pnpm; expose it so the script can import it.
+# Maintenance scripts run inside the container with `docker exec`.
+COPY --from=build --chown=node:node /app/scripts/backup.mjs /app/scripts/reset-data.mjs ./scripts/
+# The standalone output keeps better-sqlite3 only under .pnpm; expose it so the scripts can import it.
 RUN ln -s "$(echo /app/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3)" /app/node_modules/better-sqlite3
 RUN mkdir -p /data && chown node:node /data
 VOLUME /data

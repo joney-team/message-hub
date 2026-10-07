@@ -7,9 +7,9 @@ status: stable
 version: 1.0.0
 owner: maintainers
 last_verified: 2026-10-07
-modules: [src/server/services/channels.ts, src/app/api/v1/channels, src/server/http/auth.ts]
+modules: [src/server/services/channels.ts, src/app/api/v1/channels, src/server/http/auth.ts, scripts/reset-data.mjs]
 entities: [channels]
-routes: [GET/POST /api/v1/channels, GET/PATCH/DELETE /api/v1/channels/[id], POST /api/v1/channels/[id]/rotate-secret, GET /api/v1/channels/[id]/visitors, GET /api/widget/channels/[id]]
+routes: [GET/POST /api/v1/channels, GET/PATCH/DELETE /api/v1/channels/[id], PUT /api/v1/channels/[id]/webhook, POST /api/v1/channels/[id]/rotate-secret, GET /api/v1/channels/[id]/visitors, GET /api/widget/channels/[id]]
 related_plans: []
 related_features: [widget-sdk, conversations, webhooks, customization]
 ---
@@ -60,7 +60,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 
 **BR-4** — `allowedOrigins` là danh sách origin dạng `https://example.com`, `http://localhost:3000` hoặc wildcard host `https://*.example.com`; có đường dẫn hoặc ký tự lạ bị từ chối. Rỗng = cho nhúng mọi nơi.
 
-**BR-5** — `webhookUrl` chỉ nhận `http(s)`; `webhookSecret` sinh tự động (`whsec_…`), trả về cho owner.
+**BR-5** — `webhookUrl` chỉ nhận `http(s)`; `PUT /channels/[id]/webhook` chỉ thay URL (nhận `null` để tắt), không xoay secret. `webhookSecret` sinh tự động (`whsec_…`), trả về cho owner.
 
 **BR-6** — `connectedAt` được ghi đúng một lần, ở lần đầu `/embed/<id>.js` được tải.
 
@@ -71,6 +71,8 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 **AC-2** — Channel có `settings` rỗng hoặc hỏng vẫn trả object đầy đủ trường.
 
 **AC-3** — Xóa channel xóa file của nó trên đĩa (`tests/files.test.ts`).
+
+**AC-4** — API webhook riêng cập nhật/xóa URL, giữ nguyên secret, từ chối URL sai và channel của owner khác (`tests/api-v1.test.ts`).
 
 ---
 
@@ -85,6 +87,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 | Routes | `src/app/api/v1/channels/**`, `src/app/api/widget/channels/[id]/route.ts` |
 | Auth | `src/server/http/auth.ts`, `src/server/config.ts` (`API_KEYS`) |
 | Settings | `src/settings/` |
+| Reset dữ liệu vận hành | `scripts/reset-data.mjs` |
 
 ### Data Model
 
@@ -105,6 +108,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 | `GET /api/v1/channels?ref=&limit=&offset=` | 🔑 | List của owner → `{ data, hasMore }` |
 | `POST /api/v1/channels` | 🔑 | Tạo (`name`, `ref?`, `webhookUrl?`, `allowedOrigins?`, `settings?`) → 201 |
 | `GET/PATCH/DELETE /api/v1/channels/[id]` | 🔑 | Chi tiết / sửa / xóa (204) |
+| `PUT /api/v1/channels/[id]/webhook` | 🔑 | `{webhookUrl: http(s) URL \| null}`; chỉ cập nhật đích webhook |
 | `POST /api/v1/channels/[id]/rotate-secret` | 🔑 | Sinh secret mới |
 | `GET /api/v1/channels/[id]/visitors` | 🔑 | List visitor |
 | `GET /api/widget/channels/[id]` | public | `{ id, name, settings }`, `ETag`, không có secret |
@@ -117,3 +121,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 ### Vấn đề đã biết
 
 - Không chặn `webhookUrl` trỏ vào địa chỉ nội bộ (chủ ý: dự án chính có thể ở mạng nội bộ); worker không theo redirect.
+
+### Vận hành
+
+`node scripts/reset-data.mjs --confirm-reset` xóa toàn bộ bảng nghiệp vụ và uploaded files, reset autoincrement nhưng giữ bảng migration và `/data/backups`. Khi chạy trong container phải tạm chặn traffic và restart container ngay sau đó để xóa state trong memory.

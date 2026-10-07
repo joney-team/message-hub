@@ -19,6 +19,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "db:generate": "drizzle-kit generate",
     "db:backup": "node scripts/backup.mjs",
+    "db:reset": "node scripts/reset-data.mjs",
     "deploy": "./deploy.sh"
   },
   "pnpm": {

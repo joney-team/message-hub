@@ -42,6 +42,8 @@ export const updateChannelBody = z
   })
   .strict();
 
+export const updateWebhookBody = z.object({ webhookUrl: webhookUrl.nullable() }).strict();
+
 export interface ChannelDto {
   id: string;
   name: string;
@@ -126,6 +128,16 @@ export function updateChannel(owner: string, id: string, body: z.output<typeof u
   if (body.allowedOrigins !== undefined) set.allowedOrigins = body.allowedOrigins;
   if (body.settings !== undefined) set.settings = applySettingsPatch(current.settings, body.settings);
   return getDb().update(channels).set(set).where(eq(channels.id, id)).returning().get();
+}
+
+export function updateWebhook(owner: string, id: string, body: z.output<typeof updateWebhookBody>): ChannelRow {
+  getOwnedChannel(owner, id);
+  return getDb()
+    .update(channels)
+    .set({ webhookUrl: body.webhookUrl, updatedAt: new Date() })
+    .where(eq(channels.id, id))
+    .returning()
+    .get();
 }
 
 export function rotateWebhookSecret(owner: string, id: string): ChannelRow {

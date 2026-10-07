@@ -136,6 +136,7 @@ pnpm build          # production build and standalone preparation
 pnpm build:loader   # regenerate src/loader/loader.min.ts
 pnpm db:generate    # generate a migration after changing the DB schema
 pnpm db:backup      # hot backup
+pnpm db:reset -- --confirm-reset  # delete all application data and uploads
 ```
 
 API examples are available in [`bruno/`](bruno).

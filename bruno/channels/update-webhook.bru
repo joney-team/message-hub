@@ -1,0 +1,21 @@
+meta {
+  name: Update channel webhook URL
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/channels/{{channelId}}/webhook
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+{
+  "webhookUrl": "https://example.com/hooks/message-hub"
+}
+}

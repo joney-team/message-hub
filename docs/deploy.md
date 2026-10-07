@@ -120,6 +120,19 @@ To restore:
 3. Remove stale `hub.db-wal` and `hub.db-shm` files.
 4. Start the application and verify `/api/health`.
 
+## Reset toàn bộ dữ liệu
+
+Thao tác này xóa toàn bộ channel, visitor, message, file metadata, webhook delivery và uploaded files. Migration state cùng nội dung trong `/data/backups` được giữ lại.
+
+Trước khi chạy, tạo backup và tạm chặn traffic ở reverse proxy để không có request ghi dữ liệu đồng thời. Script từ chối chạy nếu thiếu cờ xác nhận:
+
+```bash
+docker exec <container> node scripts/reset-data.mjs --confirm-reset
+docker restart <container>
+```
+
+Phải restart ngay sau khi reset để xóa SSE connection, rate limiter và worker state còn nằm trong memory của process cũ. Sau khi container lên lại, kiểm tra `/api/health`; database vẫn giữ migration state và sẵn sàng tạo channel mới.
+
 ## Uploaded Content
 
 Message Hub validates supported file types and sizes, but it does not include antivirus or malware scanning. Operators should add scanning, moderation, storage quotas, and abuse controls appropriate to their threat model.

@@ -8,6 +8,7 @@ import { ALL_CATALOGS } from '@/i18n/catalog.server';
 import * as channelsRoute from '@/app/api/v1/channels/route';
 import * as channelRoute from '@/app/api/v1/channels/[id]/route';
 import * as rotateRoute from '@/app/api/v1/channels/[id]/rotate-secret/route';
+import * as webhookRoute from '@/app/api/v1/channels/[id]/webhook/route';
 import * as channelVisitorsRoute from '@/app/api/v1/channels/[id]/visitors/route';
 import * as visitorRoute from '@/app/api/v1/visitors/[id]/route';
 import * as visitorMessagesRoute from '@/app/api/v1/visitors/[id]/messages/route';
@@ -62,6 +63,7 @@ describe('channel scoping between API keys', () => {
       [channelRoute.PATCH, 'PATCH', { name: 'hijack' }],
       [channelRoute.DELETE, 'DELETE'],
       [rotateRoute.POST, 'POST'],
+      [webhookRoute.PUT, 'PUT', { webhookUrl: 'https://other.test/hook' }],
       [channelVisitorsRoute.GET, 'GET'],
     ] as const) {
       const r = await call(h, KEY_B, { method, params, body });
@@ -101,6 +103,36 @@ describe('channel scoping between API keys', () => {
     const paged = await call(channelsRoute.GET, KEY_A, { url: 'http://hub.test/api/v1/channels?limit=1' });
     expect(paged.body.data).toHaveLength(1);
     expect(paged.body.hasMore).toBe(true);
+  });
+});
+
+describe('channel webhook endpoint', () => {
+  it('updates or clears only the webhook URL and keeps the secret', async () => {
+    const channel = insertChannel('a', { webhookUrl: null });
+    const params = { id: channel.id };
+
+    const updated = await call(webhookRoute.PUT, KEY_A, {
+      method: 'PUT',
+      params,
+      body: { webhookUrl: 'https://receiver.test/message-hub' },
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body.webhookUrl).toBe('https://receiver.test/message-hub');
+    expect(updated.body.webhookSecret).toBe(channel.webhookSecret);
+
+    const cleared = await call(webhookRoute.PUT, KEY_A, { method: 'PUT', params, body: { webhookUrl: null } });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.webhookUrl).toBeNull();
+    expect(cleared.body.webhookSecret).toBe(channel.webhookSecret);
+  });
+
+  it('requires exactly one valid webhookUrl field', async () => {
+    const params = { id: insertChannel('a').id };
+    for (const body of [{}, { webhookUrl: 'javascript:alert(1)' }, { webhookUrl: 'https://ok.test/hook', extra: true }]) {
+      const response = await call(webhookRoute.PUT, KEY_A, { method: 'PUT', params, body });
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    }
   });
 });
 
