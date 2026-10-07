@@ -4,7 +4,7 @@ import { getConfig } from '../config';
 import { channels, visitors, webhookDeliveries } from '../db/schema';
 import { sweepFiles } from '../services/files';
 import { signWebhook } from './signature';
-import { debug } from '../log';
+import { debug, error as logError } from '../log';
 
 export const MAX_ATTEMPTS = 6;
 /** Wait after attempt 1..5 fails; attempt 6 failing marks the delivery `failed`. */
@@ -61,7 +61,7 @@ function dueHeads(now: number, exclude: Set<string>, limit: number): Delivery[] 
 async function deliverOne(d: Delivery, deps: WorkerDeps): Promise<void> {
   const db = getDb();
   const channel = db.select().from(channels).where(eq(channels.id, d.channelId)).get();
-  const fail = (error: string, status: number | null) => {
+  const fail = (error: string, status: number | null, reason: 'http_error' | 'request_error') => {
     const attempts = d.attempts + 1;
     const exhausted = attempts >= MAX_ATTEMPTS;
     db.update(webhookDeliveries)
@@ -74,20 +74,30 @@ async function deliverOne(d: Delivery, deps: WorkerDeps): Promise<void> {
       })
       .where(eq(webhookDeliveries.id, d.id))
       .run();
-    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: attempts, status, exhausted });
+    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, webhookEvent: d.event, attempt: attempts, status, exhausted });
+    logError('webhook.delivery_failed', { deliveryId: d.id, channelId: d.channelId, webhookEvent: d.event, attempt: attempts, status, reason, exhausted });
   };
   if (!channel?.webhookUrl) {
     db.update(webhookDeliveries)
       .set({ status: 'failed', attempts: d.attempts + 1, lastError: 'Channel has no webhook URL' })
       .where(eq(webhookDeliveries.id, d.id))
       .run();
-    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1, status: null, exhausted: true });
+    debug('webhook.failed', { deliveryId: d.id, channelId: d.channelId, webhookEvent: d.event, attempt: d.attempts + 1, status: null, exhausted: true });
+    logError('webhook.delivery_failed', {
+      deliveryId: d.id,
+      channelId: d.channelId,
+      webhookEvent: d.event,
+      attempt: d.attempts + 1,
+      status: null,
+      reason: 'missing_webhook_url',
+      exhausted: true,
+    });
     return;
   }
   const body = JSON.stringify({ id: d.id, ...d.payload });
   const timestamp = Math.floor(deps.now() / 1000);
   try {
-    debug('webhook.attempt', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1 });
+    debug('webhook.attempt', { deliveryId: d.id, channelId: d.channelId, webhookEvent: d.event, attempt: d.attempts + 1 });
     const res = await deps.fetch(channel.webhookUrl, {
       method: 'POST',
       redirect: 'manual',
@@ -107,12 +117,12 @@ async function deliverOne(d: Delivery, deps: WorkerDeps): Promise<void> {
         .set({ status: 'delivered', attempts: d.attempts + 1, lastStatus: res.status, lastError: null, deliveredAt: new Date(deps.now()) })
         .where(eq(webhookDeliveries.id, d.id))
         .run();
-      debug('webhook.delivered', { deliveryId: d.id, channelId: d.channelId, event: d.event, attempt: d.attempts + 1, status: res.status });
+      debug('webhook.delivered', { deliveryId: d.id, channelId: d.channelId, webhookEvent: d.event, attempt: d.attempts + 1, status: res.status });
     } else {
-      fail(`HTTP ${res.status}`, res.status);
+      fail(`HTTP ${res.status}`, res.status, 'http_error');
     }
   } catch (err) {
-    fail(err instanceof Error ? `${err.name}: ${err.message}` : 'Request failed', null);
+    fail(err instanceof Error ? `${err.name}: ${err.message}` : 'Request failed', null, 'request_error');
   }
 }
 

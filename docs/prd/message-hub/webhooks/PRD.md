@@ -57,11 +57,15 @@ Mỗi sự kiện đáng chú ý (tin nhắn mới, visitor mới/cập nhật, 
 
 **BR-7** — `SIGTERM`: dừng nhận việc mới, chờ request đang bay (tối đa 5 s), đóng stream, đóng DB.
 
+**BR-8** — Message Hub Studio hiển thị 100 delivery mới nhất của channel đang chọn, tự refresh mỗi 5 giây, lọc theo trạng thái và cho phép đưa delivery `pending`/`failed` về hàng đợi ngay.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Retry/backoff đúng lịch với đồng hồ giả; thứ tự trong channel giữ nguyên; `pending` chạy tiếp sau restart; chữ ký kiểm được (`tests/queue.test.ts`).
 
 **AC-2** — Receiver thật nhận `visitor.created`, `message.created` (inbound + outbound) với chữ ký hợp lệ khi chạy `next start` (đã kiểm 2026-10-07).
+
+**AC-3** — Studio theo dõi delivery theo channel, hiển thị attempts/HTTP/error/timestamps và gọi endpoint retry cho delivery chưa thành công.
 
 ---
 
@@ -75,6 +79,7 @@ Mỗi sự kiện đáng chú ý (tin nhắn mới, visitor mới/cập nhật, 
 | Worker | `src/server/queue/worker.ts` |
 | Chữ ký và hàm kiểm | `src/server/queue/signature.ts` |
 | API | `src/server/services/deliveries.ts`, `src/app/api/v1/deliveries/**` |
+| Theo dõi trong Studio | `src/studio/ChannelStudio.tsx` |
 | Khởi động/tắt | `src/instrumentation.ts`, `src/instrumentation-node.ts` |
 
 ### Data Model
@@ -100,4 +105,4 @@ Mỗi sự kiện đáng chú ý (tin nhắn mới, visitor mới/cập nhật, 
 
 ### Vận hành
 
-Khi `DEBUG_LOG=true`, worker ghi lifecycle, lần gửi, kết quả delivery, retry/thất bại và số bản ghi đã dọn. Log webhook chỉ có `deliveryId`, `channelId`, event, attempt và HTTP status; không chứa URL đích, payload hoặc secret.
+Worker luôn ghi structured error log ra stderr khi một lần gửi webhook thất bại, kể cả khi `DEBUG_LOG=false`; log gồm `deliveryId`, `channelId`, `webhookEvent`, attempt, HTTP status/reason và trạng thái hết lượt retry. Khi `DEBUG_LOG=true`, worker ghi thêm lifecycle, lần gửi, kết quả delivery, retry/thất bại và số bản ghi đã dọn. Log webhook không chứa URL đích, payload, secret hoặc nội dung tin nhắn.

@@ -21,6 +21,19 @@ export interface StudioMeta {
   messages: Record<string, Record<string, string>>;
 }
 
+export interface DeliveryDto {
+  id: number;
+  channelId: string;
+  event: string;
+  status: 'pending' | 'delivered' | 'failed';
+  attempts: number;
+  nextAttemptAt: string;
+  lastStatus: number | null;
+  lastError: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
 export interface ApiErrorBody {
   error?: { code?: string; message?: string };
 }

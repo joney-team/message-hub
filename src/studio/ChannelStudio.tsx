@@ -6,13 +6,16 @@ import {
   ChevronDown,
   CircleAlert,
   Clipboard,
+  Clock3,
   Code2,
   Eye,
   EyeOff,
+  ListRestart,
   LogOut,
   MessageCircle,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
   Search,
   Settings2,
@@ -24,11 +27,21 @@ import {
 import Image from 'next/image';
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelSettings, LocalizedText } from '@/settings/schema';
-import { buildMergePatch, copyChannel, formatApiError, parseOrigins, type ApiErrorBody, type ChannelDto, type StudioMeta } from './types';
+import {
+  buildMergePatch,
+  copyChannel,
+  formatApiError,
+  parseOrigins,
+  type ApiErrorBody,
+  type ChannelDto,
+  type DeliveryDto,
+  type StudioMeta,
+} from './types';
 
-type Tab = 'general' | 'appearance' | 'content' | 'behavior' | 'debug';
+type Tab = 'general' | 'appearance' | 'content' | 'behavior' | 'deliveries' | 'debug';
 type PreviewScreen = 'welcome' | 'prechat' | 'chat';
 type Notice = { tone: 'success' | 'error'; text: string } | null;
+type DeliveryFilter = 'all' | DeliveryDto['status'];
 
 const EMPTY_META: StudioMeta = { version: '', apiVersion: 'v1', locales: [], messages: {} };
 const TABS: Array<{ id: Tab; label: string; icon: typeof Settings2 }> = [
@@ -36,6 +49,7 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof Settings2 }> = [
   { id: 'appearance', label: 'Appearance', icon: SlidersHorizontal },
   { id: 'content', label: 'Content', icon: Type },
   { id: 'behavior', label: 'Behavior', icon: MessageCircle },
+  { id: 'deliveries', label: 'Deliveries', icon: ListRestart },
   { id: 'debug', label: 'Debug', icon: Code2 },
 ];
 
@@ -68,6 +82,13 @@ async function loadChannels(key: string): Promise<ChannelDto[]> {
   }
 }
 
+async function loadDeliveries(key: string, channelId: string): Promise<{ data: DeliveryDto[]; hasMore: boolean }> {
+  return api<{ data: DeliveryDto[]; hasMore: boolean }>(
+    `/api/v1/deliveries?channelId=${encodeURIComponent(channelId)}&limit=100`,
+    key,
+  );
+}
+
 export function ChannelStudio() {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -79,6 +100,12 @@ export function ChannelStudio() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deliveries, setDeliveries] = useState<DeliveryDto[]>([]);
+  const [deliveriesLoading, setDeliveriesLoading] = useState(false);
+  const [deliveriesHasMore, setDeliveriesHasMore] = useState(false);
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('all');
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [retryingDeliveryId, setRetryingDeliveryId] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<Tab>('general');
@@ -87,6 +114,7 @@ export function ChannelStudio() {
   const [rawSettings, setRawSettings] = useState('');
   const iframe = useRef<HTMLIFrameElement>(null);
   const keyInput = useRef<HTMLInputElement>(null);
+  const deliveryRequest = useRef(0);
 
   const connect = useCallback(async (key: string) => {
     const trimmed = key.trim();
@@ -147,14 +175,52 @@ export function ChannelStudio() {
   }, [sendPreview]);
 
   const selectChannel = (channel: ChannelDto) => {
+    const changedChannel = channel.id !== selectedId;
+    if (changedChannel) deliveryRequest.current++;
     const next = copyChannel(channel);
     setSelectedId(channel.id);
     setDraft(next);
     setSaved(copyChannel(channel));
     setRawSettings(JSON.stringify(channel.settings, null, 2));
     setPreviewLocale(channel.settings.defaultLocale);
+    if (changedChannel) {
+      setDeliveries([]);
+      setDeliveriesHasMore(false);
+      setDeliveryError(null);
+    }
     setNotice(null);
   };
+
+  const refreshDeliveries = useCallback(
+    async (quiet = false) => {
+      if (!selectedId || !apiKey) return;
+      const request = ++deliveryRequest.current;
+      if (!quiet) setDeliveriesLoading(true);
+      setDeliveryError(null);
+      try {
+        const result = await loadDeliveries(apiKey, selectedId);
+        if (request !== deliveryRequest.current) return;
+        setDeliveries(result.data);
+        setDeliveriesHasMore(result.hasMore);
+      } catch (error) {
+        if (request !== deliveryRequest.current) return;
+        setDeliveryError(error instanceof Error ? error.message : 'Could not load deliveries');
+      } finally {
+        if (request === deliveryRequest.current) setDeliveriesLoading(false);
+      }
+    },
+    [apiKey, selectedId],
+  );
+
+  useEffect(() => {
+    if (tab !== 'deliveries' || !selectedId) return;
+    const initial = window.setTimeout(() => void refreshDeliveries(), 0);
+    const timer = window.setInterval(() => void refreshDeliveries(true), 5000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
+  }, [refreshDeliveries, selectedId, tab]);
 
   const refresh = async () => {
     setLoading(true);
@@ -282,11 +348,13 @@ export function ChannelStudio() {
   };
 
   const logout = () => {
+    deliveryRequest.current++;
     sessionStorage.removeItem('message-hub:studio-key');
     setApiKey('');
     setChannels([]);
     setDraft(null);
     setSaved(null);
+    setDeliveries([]);
     setNotice(null);
   };
 
@@ -445,6 +513,32 @@ export function ChannelStudio() {
                   update={updateSettings}
                 />
               )}
+              {tab === 'deliveries' && (
+                <DeliveriesTab
+                  deliveries={deliveries}
+                  filter={deliveryFilter}
+                  setFilter={setDeliveryFilter}
+                  loading={deliveriesLoading}
+                  hasMore={deliveriesHasMore}
+                  error={deliveryError}
+                  retryingId={retryingDeliveryId}
+                  refresh={() => void refreshDeliveries()}
+                  retry={async (delivery) => {
+                    setRetryingDeliveryId(delivery.id);
+                    setDeliveryError(null);
+                    try {
+                      const updated = await api<DeliveryDto>(`/api/v1/deliveries/${delivery.id}/retry`, apiKey, {
+                        method: 'POST',
+                      });
+                      setDeliveries((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+                    } catch (error) {
+                      setDeliveryError(error instanceof Error ? error.message : 'Could not retry delivery');
+                    } finally {
+                      setRetryingDeliveryId(null);
+                    }
+                  }}
+                />
+              )}
               {tab === 'debug' && (
                 <DebugTab
                   channel={draft}
@@ -511,6 +605,129 @@ export function ChannelStudio() {
         </section>
       )}
     </main>
+  );
+}
+
+function DeliveriesTab({
+  deliveries,
+  filter,
+  setFilter,
+  loading,
+  hasMore,
+  error,
+  retryingId,
+  refresh,
+  retry,
+}: {
+  deliveries: DeliveryDto[];
+  filter: DeliveryFilter;
+  setFilter: (filter: DeliveryFilter) => void;
+  loading: boolean;
+  hasMore: boolean;
+  error: string | null;
+  retryingId: number | null;
+  refresh: () => void;
+  retry: (delivery: DeliveryDto) => Promise<void>;
+}) {
+  const filtered = filter === 'all' ? deliveries : deliveries.filter((delivery) => delivery.status === filter);
+  const counts = deliveries.reduce(
+    (result, delivery) => {
+      result[delivery.status]++;
+      return result;
+    },
+    { pending: 0, delivered: 0, failed: 0 },
+  );
+
+  return (
+    <div className="studio-sections studio-deliveries">
+      <section className="studio-delivery-toolbar">
+        <div>
+          <h3>Webhook delivery queue</h3>
+          <p>Latest delivery attempts for this channel. This view refreshes every 5 seconds.</p>
+        </div>
+        <IconButton label="Refresh deliveries" onClick={refresh} disabled={loading}>
+          <RefreshCw className={loading ? 'studio-spin' : ''} size={17} />
+        </IconButton>
+      </section>
+
+      <div className="studio-delivery-filters" role="group" aria-label="Filter deliveries">
+        {([
+          ['all', `All ${deliveries.length}`],
+          ['pending', `Pending ${counts.pending}`],
+          ['failed', `Failed ${counts.failed}`],
+          ['delivered', `Delivered ${counts.delivered}`],
+        ] as Array<[DeliveryFilter, string]>).map(([value, label]) => (
+          <button key={value} type="button" data-active={filter === value} onClick={() => setFilter(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {error && <Notice notice={{ tone: 'error', text: error }} />}
+      {hasMore && <p className="studio-delivery-limit">Showing the latest 100 deliveries.</p>}
+
+      <div className="studio-delivery-list">
+        {filtered.map((delivery) => (
+          <article className="studio-delivery" data-status={delivery.status} key={delivery.id}>
+            <div className="studio-delivery-main">
+              <span className="studio-delivery-state" aria-hidden="true">
+                {delivery.status === 'delivered' ? <Check size={16} /> : delivery.status === 'failed' ? <CircleAlert size={16} /> : <Clock3 size={16} />}
+              </span>
+              <div>
+                <div className="studio-delivery-title">
+                  <strong>{delivery.event}</strong>
+                  <span>#{delivery.id}</span>
+                  <span className="studio-delivery-status">{delivery.status}</span>
+                </div>
+                <dl className="studio-delivery-meta">
+                  <div>
+                    <dt>Created</dt>
+                    <dd>{new Date(delivery.createdAt).toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Attempts</dt>
+                    <dd>{delivery.attempts}</dd>
+                  </div>
+                  <div>
+                    <dt>HTTP</dt>
+                    <dd>{delivery.lastStatus ?? 'No response'}</dd>
+                  </div>
+                  <div>
+                    <dt>{delivery.status === 'delivered' ? 'Delivered' : delivery.status === 'pending' ? 'Next attempt' : 'Queue'}</dt>
+                    <dd>
+                      {delivery.status === 'delivered' && delivery.deliveredAt
+                        ? new Date(delivery.deliveredAt).toLocaleString()
+                        : delivery.status === 'pending'
+                          ? new Date(delivery.nextAttemptAt).toLocaleString()
+                          : 'Manual retry required'}
+                    </dd>
+                  </div>
+                </dl>
+                {delivery.lastError && <p className="studio-delivery-error">{delivery.lastError}</p>}
+              </div>
+            </div>
+            {delivery.status !== 'delivered' && (
+              <button
+                className="studio-secondary studio-delivery-retry"
+                type="button"
+                disabled={retryingId !== null}
+                onClick={() => void retry(delivery)}
+              >
+                <RotateCcw className={retryingId === delivery.id ? 'studio-spin' : ''} size={15} />
+                {retryingId === delivery.id ? 'Retrying' : 'Retry now'}
+              </button>
+            )}
+          </article>
+        ))}
+        {!loading && !filtered.length && (
+          <div className="studio-delivery-empty">
+            <Webhook size={22} />
+            <strong>{deliveries.length ? 'No deliveries match this filter' : 'No webhook deliveries yet'}</strong>
+            <p>Deliveries appear after the channel produces an event and has a webhook URL configured.</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -66,7 +66,7 @@ describe('config', () => {
       process.env.DEBUG_LOG = 'true';
       resetConfigForTests();
       debug('test.event', { value: 1 });
-      expect(spy).toHaveBeenCalledWith('[hub] {"level":"debug","event":"test.event","value":1}');
+      expect(spy).toHaveBeenCalledWith('[hub] {"value":1,"level":"debug","event":"test.event"}');
     } finally {
       if (previous === undefined) delete process.env.DEBUG_LOG;
       else process.env.DEBUG_LOG = previous;

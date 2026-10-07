@@ -8,5 +8,13 @@ type LogValue = string | number | boolean | null | undefined;
  */
 export function debug(event: string, fields: Record<string, LogValue> = {}): void {
   if (!getConfig().debugLog) return;
-  console.info(`[hub] ${JSON.stringify({ level: 'debug', event, ...fields })}`);
+  console.info(`[hub] ${JSON.stringify({ ...fields, level: 'debug', event })}`);
+}
+
+/**
+ * Emits safe operational failures regardless of DEBUG_LOG so production
+ * operators can detect broken integrations.
+ */
+export function error(event: string, fields: Record<string, LogValue> = {}): void {
+  console.error(`[hub] ${JSON.stringify({ ...fields, level: 'error', event })}`);
 }

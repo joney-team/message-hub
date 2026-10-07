@@ -64,7 +64,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-7** — `MessageHub.identify(profile)` chỉ nhận khóa hợp lệ, giá trị chuỗi/số, tối đa 20 trường; **không xác minh** — không dùng để cấp quyền.
 
-**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug và iframe preview cho `welcome | prechat | chat`; thay đổi chỉ lưu sau khi API chấp nhận.
+**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận.
 
 ### Tiêu chí nghiệm thu
 

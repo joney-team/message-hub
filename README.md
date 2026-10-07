@@ -93,7 +93,7 @@ Replace the example hostname with your deployment. See [the integration guide](d
 | `TRUSTED_PROXIES` | `1` | Number of trusted reverse proxies appending to `X-Forwarded-For`; use `0` with no proxy |
 | `MAX_UPLOAD_MB` | `10` | Maximum upload size |
 | `MESSAGE_RETENTION_DAYS` | `0` | Delete inactive visitors and conversations after this many days; `0` keeps them indefinitely |
-| `DEBUG_LOG` | `false` | Set `true` to emit safe, structured operational diagnostics to stdout |
+| `DEBUG_LOG` | `false` | Set `true` to emit safe, structured debug diagnostics to stdout; webhook delivery failures are always logged to stderr |
 
 See [.env.example](.env.example) and [.env.production.example](.env.production.example).
 

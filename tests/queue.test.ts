@@ -84,6 +84,59 @@ describe('outbox', () => {
 });
 
 describe('delivery', () => {
+  it('logs safe structured errors even when debug logging is disabled', async () => {
+    const previousDebugLog = process.env.DEBUG_LOG;
+    process.env.DEBUG_LOG = 'false';
+    resetConfigForTests();
+    const { channel, visitor } = setup();
+    send(channel, visitor, 'secret message');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      await runOnce({ now: clock().now, fetch: vi.fn(async () => new Response('receiver details', { status: 503 })) });
+
+      expect(errorSpy).toHaveBeenCalledOnce();
+      const line = String(errorSpy.mock.calls[0][0]);
+      expect(JSON.parse(line.replace(/^\[hub\] /, ''))).toEqual({
+        level: 'error',
+        event: 'webhook.delivery_failed',
+        deliveryId: 1,
+        channelId: channel.id,
+        webhookEvent: 'message.created',
+        attempt: 1,
+        status: 503,
+        reason: 'http_error',
+        exhausted: false,
+      });
+      expect(line).not.toContain(URL_A);
+      expect(line).not.toContain(channel.webhookSecret);
+      expect(line).not.toContain('secret message');
+      expect(line).not.toContain('receiver details');
+    } finally {
+      if (previousDebugLog === undefined) delete process.env.DEBUG_LOG;
+      else process.env.DEBUG_LOG = previousDebugLog;
+      resetConfigForTests();
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('logs request failures without exposing the destination URL', async () => {
+    const { channel, visitor } = setup();
+    send(channel, visitor, 'x');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      await runOnce({ now: clock().now, fetch: vi.fn(async () => Promise.reject(new TypeError(`fetch failed for ${URL_A}`))) });
+
+      const line = String(errorSpy.mock.calls[0][0]);
+      expect(line).toContain('"reason":"request_error"');
+      expect(line).toContain('"event":"webhook.delivery_failed"');
+      expect(line).not.toContain(URL_A);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it('posts a signed payload with the documented headers and shape', async () => {
     const { channel, visitor } = setup({ ref: 'ws-1' });
     visitor.profile = {};
