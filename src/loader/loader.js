@@ -31,7 +31,7 @@ if (!hub) {
 var prev = window[NS];
 if (prev && typeof prev.destroy === 'function') prev.destroy();
 
-var MOBILE = '(max-width: 480px)';
+var MOBILE_MAX_WIDTH = 768;
 var TOKEN_KEY = 'mh:token:' + c.channelId;
 var READ_KEY = 'mh:read:' + c.channelId;
 var listeners = {};
@@ -112,10 +112,13 @@ function strings() {
   var l = currentLocale();
   return c.strings[l] || c.strings[c.defaultLocale] || { open: 'Open chat', close: 'Close chat' };
 }
+function isMobile() {
+  return window.innerWidth <= MOBILE_MAX_WIDTH;
+}
 
 function layout() {
   var s = state;
-  var mobile = window.matchMedia(MOBILE).matches;
+  var mobile = isMobile();
   var L = c.launcher;
   var launcherOffset = mobile ? L.mobileOffset : L.offset;
   var side = L.position === 'left' ? 'left' : 'right';
@@ -337,7 +340,6 @@ var api = {
         frame: null, frameBox: null, frameTimer: 0, open: false, ready: false, unread: 0,
         locale: options.locale ? String(options.locale) : (script && script.getAttribute('data-locale')) || null,
         identity: plainProfile(options.identify),
-        mq: window.matchMedia(MOBILE),
         onResize: function () { layout(); },
         focusVisible: false,
       };

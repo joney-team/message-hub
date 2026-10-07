@@ -53,7 +53,7 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 **BR-1** — Loader không gọi `fetch`/XHR; cấu hình launcher (vị trí, màu, nhãn, chuỗi `open/close` mọi locale bật) nằm sẵn trong file script (JSON đã escape `< > & U+2028/9`).
 
-**BR-2** — Mọi kiểu của loader đặt bằng CSSOM; `:focus-visible` mô phỏng bằng listener; mobile được xác định chỉ theo viewport rộng ≤ 480 px và dùng bố cục toàn màn hình khi mở chat.
+**BR-2** — Mọi kiểu của loader đặt bằng CSSOM; `:focus-visible` mô phỏng bằng listener; mobile được xác định chỉ theo chiều rộng viewport hiện tại ≤ 768 px, được tính lại khi resize và dùng bố cục toàn màn hình khi mở chat.
 
 **BR-3** — Loader chỉ nhận `postMessage` khi `event.source` là iframe nó tạo **và** `event.origin` là host của script; luôn gửi tới đúng origin đó. Iframe khóa origin parent từ `mh:init` và chỉ gửi lại origin đó (riêng `mh:hello` đi `*` và không mang dữ liệu).
 

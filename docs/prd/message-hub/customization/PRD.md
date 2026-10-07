@@ -93,7 +93,7 @@ related_features: [channels, i18n, widget-sdk]
 | Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
 | Trang thử preview | `public/demo.html` |
 
-Loader dùng media query `(max-width: 480px)` để chọn `launcher.mobileOffset`. Ở chế độ này, khi mở chat, launcher được ẩn và iframe container dùng toàn bộ viewport với chiều cao dynamic viewport; desktop tiếp tục dùng `launcher.offset` và kích thước trong `window`, không phụ thuộc chiều cao viewport.
+Loader dùng chiều rộng viewport hiện tại (`window.innerWidth <= 768`) để chọn `launcher.mobileOffset` và tính lại layout khi cửa sổ resize. Ở chế độ này, khi mở chat, launcher được ẩn và iframe container dùng toàn bộ viewport với chiều cao dynamic viewport; desktop tiếp tục dùng `launcher.offset` và kích thước trong `window`, không phụ thuộc chiều cao viewport.
 
 ### API
 

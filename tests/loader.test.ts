@@ -27,21 +27,16 @@ const shadow = () => root()!.shadowRoot!;
 const button = () => shadow().querySelector('button')!;
 const frame = () => shadow().querySelector('iframe');
 
-function setMobileViewport(mobile: boolean) {
-  window.matchMedia = ((q: string) => ({
-    matches: q === '(max-width: 480px)' ? mobile : false,
-    media: q,
-    addEventListener() {},
-    removeEventListener() {},
-    addListener() {},
-    removeListener() {},
-  })) as unknown as typeof window.matchMedia;
+function setViewportWidth(width: number) {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: width });
 }
 
 beforeEach(() => {
   document.body.innerHTML = '';
   document.documentElement.lang = '';
   localStorage.clear();
+  setViewportWidth(1024);
+  Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 768 });
   window.matchMedia = ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as unknown as typeof window.matchMedia;
 });
 
@@ -194,7 +189,7 @@ describe('launcher settings', () => {
   });
 
   it('uses the mobile launcher offset and opens the chat across the full viewport', () => {
-    setMobileViewport(true);
+    setViewportWidth(768);
     load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
     const b = button();
     expect(b.style.right).toBe('12px');
@@ -212,15 +207,34 @@ describe('launcher settings', () => {
     expect(box.style.boxShadow).toBe('none');
   });
 
+  it('updates launcher offsets and chat layout when the viewport crosses the mobile breakpoint', () => {
+    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+    const b = button();
+    expect(b.style.right).toBe('30px');
+    expect(b.style.bottom).toBe('40px');
+
+    setViewportWidth(600);
+    window.dispatchEvent(new Event('resize'));
+    expect(b.style.right).toBe('12px');
+    expect(b.style.bottom).toBe('18px');
+
+    b.click();
+    const box = frame()!.parentElement as HTMLElement;
+    expect(b.style.display).toBe('none');
+    expect(box.style.width).toBe('100vw');
+    expect(box.style.height).toBe('100dvh');
+
+    setViewportWidth(900);
+    window.dispatchEvent(new Event('resize'));
+    expect(b.style.display).toBe('flex');
+    expect(b.style.right).toBe('30px');
+    expect(b.style.bottom).toBe('40px');
+    expect(box.style.width).toBe('380px');
+    expect(box.style.height).toBe('640px');
+  });
+
   it('keeps desktop layout when only the viewport height is short', () => {
-    window.matchMedia = ((q: string) => ({
-      matches: q.includes('max-height: 520px'),
-      media: q,
-      addEventListener() {},
-      removeEventListener() {},
-      addListener() {},
-      removeListener() {},
-    })) as unknown as typeof window.matchMedia;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 500 });
     load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
     expect(button().style.right).toBe('30px');
     expect(button().style.bottom).toBe('40px');
