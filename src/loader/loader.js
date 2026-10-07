@@ -31,7 +31,7 @@ if (!hub) {
 var prev = window[NS];
 if (prev && typeof prev.destroy === 'function') prev.destroy();
 
-var MOBILE = '(max-width: 480px), (max-height: 520px)';
+var MOBILE = '(max-width: 480px)';
 var TOKEN_KEY = 'mh:token:' + c.channelId;
 var READ_KEY = 'mh:read:' + c.channelId;
 var listeners = {};

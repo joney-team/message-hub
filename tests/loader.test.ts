@@ -29,7 +29,7 @@ const frame = () => shadow().querySelector('iframe');
 
 function setMobileViewport(mobile: boolean) {
   window.matchMedia = ((q: string) => ({
-    matches: q === '(max-width: 480px), (max-height: 520px)' ? mobile : false,
+    matches: q === '(max-width: 480px)' ? mobile : false,
     media: q,
     addEventListener() {},
     removeEventListener() {},
@@ -210,6 +210,24 @@ describe('launcher settings', () => {
     expect(box.style.height).toBe('100dvh');
     expect(box.style.borderRadius).toBe('0px');
     expect(box.style.boxShadow).toBe('none');
+  });
+
+  it('keeps desktop layout when only the viewport height is short', () => {
+    window.matchMedia = ((q: string) => ({
+      matches: q.includes('max-height: 520px'),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    })) as unknown as typeof window.matchMedia;
+    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+    expect(button().style.right).toBe('30px');
+    expect(button().style.bottom).toBe('40px');
+    button().click();
+    const box = frame()!.parentElement as HTMLElement;
+    expect(box.style.width).toBe('380px');
+    expect(box.style.height).toBe('640px');
   });
 
   it('hidden launcher draws no button but open() still works', () => {
