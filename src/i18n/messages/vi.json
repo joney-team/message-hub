@@ -27,6 +27,7 @@
   "composer.placeholder": "Nhập tin nhắn…",
   "composer.send": "Gửi",
   "composer.attach": "Đính kèm tệp",
+  "composer.camera": "Chụp hoặc tải ảnh lên",
   "composer.dropFiles": "Thả tệp vào đây để đính kèm",
   "composer.removeFile": "Bỏ {name}",
   "chat.log": "Cuộc trò chuyện",

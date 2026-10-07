@@ -27,6 +27,7 @@
   "composer.placeholder": "メッセージを入力…",
   "composer.send": "送信",
   "composer.attach": "ファイルを添付",
+  "composer.camera": "写真を撮影またはアップロード",
   "composer.dropFiles": "ここにファイルをドロップして添付",
   "composer.removeFile": "{name} を削除",
   "chat.log": "会話",

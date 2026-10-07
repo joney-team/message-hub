@@ -27,6 +27,7 @@
   "composer.placeholder": "พิมพ์ข้อความ…",
   "composer.send": "ส่ง",
   "composer.attach": "แนบไฟล์",
+  "composer.camera": "ถ่ายหรืออัปโหลดรูปภาพ",
   "composer.dropFiles": "วางไฟล์ที่นี่เพื่อแนบ",
   "composer.removeFile": "นำ {name} ออก",
   "chat.log": "การสนทนา",

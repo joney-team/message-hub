@@ -27,6 +27,7 @@
   "composer.placeholder": "输入消息…",
   "composer.send": "发送",
   "composer.attach": "添加附件",
+  "composer.camera": "拍摄或上传照片",
   "composer.dropFiles": "将文件拖到此处以添加附件",
   "composer.removeFile": "移除 {name}",
   "chat.log": "对话",

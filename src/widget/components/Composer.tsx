@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { Camera } from 'lucide-react';
 import { ALLOWED_EXTENSIONS } from '@/server/files-policy';
 import { api, ApiClientError } from '../api';
 import { IconClose, IconPaperclip, IconSend } from '../icons';
@@ -9,6 +10,7 @@ import type { OutgoingFile } from '../useChat';
 import { focusRing } from './ui';
 
 const ACCEPT = ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(',');
+const IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp';
 const MAX_PENDING = 5;
 
 interface Pending {
@@ -32,6 +34,7 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
   const [pending, setPending] = useState<Pending[]>([]);
   const area = useRef<HTMLTextAreaElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const counter = useRef(0);
 
   // `field-sizing: content` does the resizing where supported; this is the fallback.
@@ -114,6 +117,7 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
         {attachments && (
           <>
             <input ref={input} type="file" multiple accept={ACCEPT} onChange={onPick} className="sr-only" tabIndex={-1} aria-hidden="true" />
+            <input ref={cameraInput} type="file" accept={IMAGE_ACCEPT} capture="environment" onChange={onPick} className="sr-only" tabIndex={-1} aria-hidden="true" />
             <button
               type="button"
               aria-label={t('composer.attach')}
@@ -122,6 +126,15 @@ export const Composer = forwardRef<ComposerHandle, { token: string; attachments:
               className={`grid size-10 shrink-0 place-items-center rounded-mh-sm text-muted hover:bg-surface-2 hover:text-fg ${focusRing}`}
             >
               <IconPaperclip />
+            </button>
+            <button
+              type="button"
+              aria-label={t('composer.camera')}
+              title={t('composer.camera')}
+              onClick={() => cameraInput.current?.click()}
+              className={`grid size-10 shrink-0 place-items-center rounded-mh-sm text-muted hover:bg-surface-2 hover:text-fg ${focusRing}`}
+            >
+              <Camera width={20} height={20} aria-hidden="true" />
             </button>
           </>
         )}

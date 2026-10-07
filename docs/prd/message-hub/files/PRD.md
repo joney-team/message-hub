@@ -30,7 +30,7 @@ Visitor và agent đính kèm file vào tin nhắn. File lưu trên đĩa (`DATA
 
 ### User Stories
 
-**US-1 — Gửi ảnh/tài liệu:** Là visitor, tôi muốn chọn hoặc kéo-thả file vào khung chat.
+**US-1 — Gửi ảnh/tài liệu:** Là visitor, tôi muốn chọn, kéo-thả file hoặc dùng nút camera để chụp/tải ảnh vào khung chat.
 
 **US-2 — Agent gửi file:** Là ứng dụng chính, tôi muốn upload file rồi đính kèm vào câu trả lời.
 
@@ -55,6 +55,8 @@ Visitor và agent đính kèm file vào tin nhắn. File lưu trên đĩa (`DATA
 
 **BR-6** — Dọn mỗi giờ (một lượt đọc các tin có đính kèm, không quét theo từng file): file không tin nào tham chiếu sau 24 giờ; file trên đĩa không có dòng DB. Xóa channel xóa file trên đĩa.
 
+**BR-7** — Khi attachment được bật, composer có nút file cho mọi loại được hỗ trợ và nút camera riêng chỉ nhận `png`, `jpeg`, `gif`, `webp`; trên thiết bị hỗ trợ, nút camera ưu tiên camera sau. Cả hai dùng chung luồng upload, giới hạn và validation phía server.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — `.html`, `.svg`, `.js`, `.exe`, không đuôi bị từ chối; HTML đội lốt `.png` bị từ chối (`tests/files.test.ts`).
@@ -75,7 +77,7 @@ Visitor và agent đính kèm file vào tin nhắn. File lưu trên đĩa (`DATA
 | Đọc multipart có giới hạn | `src/server/http/multipart.ts` |
 | Service + dọn rác | `src/server/services/files.ts` |
 | Routes | `src/app/api/widget/files`, `src/app/api/v1/files`, `src/app/files/[id]` |
-| UI | `src/widget/components/Composer.tsx` (chọn, kéo-thả), `MessageBubble.tsx` |
+| UI | `src/widget/components/Composer.tsx` (chọn, kéo-thả, camera), `MessageBubble.tsx` |
 
 ### Data Model
 

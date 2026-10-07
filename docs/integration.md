@@ -585,6 +585,7 @@ Danh sách đầy đủ các khóa và chuỗi mặc định lấy từ `GET /ap
 | `header.title` | Hỗ trợ |
 | `composer.placeholder` | Nhập tin nhắn… |
 | `composer.send` | Gửi |
+| `composer.camera` | Chụp hoặc tải ảnh lên |
 | `chat.agent` | Hỗ trợ |
 | `chat.typingAnonymous` | Đang trả lời… |
 | `launcher.open` | Mở chat |

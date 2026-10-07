@@ -27,6 +27,7 @@
   "composer.placeholder": "Écrivez un message…",
   "composer.send": "Envoyer",
   "composer.attach": "Joindre des fichiers",
+  "composer.camera": "Prendre ou importer une photo",
   "composer.dropFiles": "Déposez les fichiers ici pour les joindre",
   "composer.removeFile": "Retirer {name}",
   "chat.log": "Conversation",

@@ -27,6 +27,7 @@
   "composer.placeholder": "Введите сообщение…",
   "composer.send": "Отправить",
   "composer.attach": "Прикрепить файлы",
+  "composer.camera": "Сделать или загрузить фото",
   "composer.dropFiles": "Перетащите файлы сюда, чтобы прикрепить",
   "composer.removeFile": "Удалить {name}",
   "chat.log": "Разговор",
