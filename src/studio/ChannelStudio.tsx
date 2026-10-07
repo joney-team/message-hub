@@ -53,6 +53,7 @@ async function api<T>(path: string, key: string, init?: RequestInit): Promise<T>
     }
     throw new Error(formatApiError(response.status, body));
   }
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -77,6 +78,7 @@ export function ChannelStudio() {
   const [saved, setSaved] = useState<ChannelDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<Tab>('general');
@@ -247,6 +249,38 @@ export function ChannelStudio() {
     }
   };
 
+  const deleteSelectedChannel = async () => {
+    if (!draft || deleting) return;
+    const unsavedWarning = dirty ? '\n\nUnsaved changes will also be discarded.' : '';
+    const confirmed = window.confirm(
+      `Delete "${draft.name}"?\n\nThis permanently deletes the channel and all of its visitors, messages, deliveries and files.${unsavedWarning}`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setNotice(null);
+    try {
+      await api<void>(`/api/v1/channels/${draft.id}`, apiKey, { method: 'DELETE' });
+      const deletedIndex = channels.findIndex((channel) => channel.id === draft.id);
+      const remaining = channels.filter((channel) => channel.id !== draft.id);
+      const next = remaining[Math.min(Math.max(deletedIndex, 0), remaining.length - 1)] ?? null;
+      setChannels(remaining);
+      if (next) {
+        selectChannel(next);
+      } else {
+        setSelectedId(null);
+        setDraft(null);
+        setSaved(null);
+        setRawSettings('');
+      }
+      setNotice({ tone: 'success', text: `Channel "${draft.name}" deleted` });
+    } catch (error) {
+      setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Could not delete channel' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const logout = () => {
     sessionStorage.removeItem('message-hub:studio-key');
     setApiKey('');
@@ -357,7 +391,10 @@ export function ChannelStudio() {
               </div>
               <div className="studio-save-area">
                 {dirty && <span className="studio-unsaved">Unsaved changes</span>}
-                <button className="studio-primary" type="button" onClick={() => void save()} disabled={!dirty || saving}>
+                <IconButton label="Delete channel" tone="danger" onClick={() => void deleteSelectedChannel()} disabled={saving || deleting}>
+                  {deleting ? <RefreshCw className="studio-spin" size={17} /> : <Trash2 size={17} />}
+                </IconButton>
+                <button className="studio-primary" type="button" onClick={() => void save()} disabled={!dirty || saving || deleting}>
                   {saving ? <RefreshCw className="studio-spin" size={17} /> : <Save size={17} />}
                   {saving ? 'Saving' : 'Save'}
                 </button>
@@ -466,6 +503,7 @@ export function ChannelStudio() {
           <MessageCircle size={28} />
           <h2>Create your first channel</h2>
           <p>The studio will show its configuration and widget preview here.</p>
+          {notice && <Notice notice={notice} />}
           <button className="studio-primary" type="button" onClick={() => void createChannel()}>
             <Plus size={17} />
             New channel

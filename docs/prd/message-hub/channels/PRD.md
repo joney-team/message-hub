@@ -46,7 +46,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 
 #### Trong phạm vi
 - CRUD channel, lọc theo `ref`, phân trang, xoay secret.
-- Message Hub Studio cho danh sách toàn bộ channel của API key, tạo channel, sửa metadata/settings/webhook và xem thông tin debug.
+- Message Hub Studio cho danh sách toàn bộ channel của API key, tạo/xóa channel, sửa metadata/settings/webhook và xem thông tin debug.
 - `allowedOrigins` → `frame-ancestors` của trang chat.
 - Cấu hình công khai chỉ đọc cho iframe/loader (`GET /api/widget/channels/[id]`).
 
@@ -79,7 +79,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 
 **AC-4** — API webhook riêng cập nhật/xóa URL, giữ nguyên secret, từ chối URL sai và channel của owner khác (`tests/api-v1.test.ts`).
 
-**AC-5** — Message Hub Studio tải đủ danh sách phân trang, cho chọn/tạo/sửa channel và chỉ persist khi bấm Save; lỗi validation từ API được hiển thị tại form.
+**AC-5** — Message Hub Studio tải đủ danh sách phân trang, cho chọn/tạo/sửa/xóa channel và chỉ persist thay đổi form khi bấm Save; xóa cần xác nhận, tự chọn channel kế tiếp và hiển thị lỗi API tại giao diện.
 
 ---
 

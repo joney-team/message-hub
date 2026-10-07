@@ -1020,6 +1020,12 @@ body {
   font-size: 13px;
 }
 
+.studio-no-selection .studio-notice {
+  width: min(100%, 360px);
+  margin-bottom: 18px;
+  text-align: left;
+}
+
 .studio-spin {
   animation: studio-spin 900ms linear infinite;
 }
