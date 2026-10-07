@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Message Hub demo</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    fieldset { margin: 1rem 0; border: 1px solid #ddd; border-radius: 8px; }
+    button, input, select, textarea { font: inherit; }
+    textarea { width: 100%; min-height: 9rem; font-family: ui-monospace, monospace; font-size: 12px; }
+    iframe { width: 100%; height: 520px; border: 1px solid #ddd; border-radius: 8px; }
+    #log { background: #f6f6f6; padding: .5rem; max-height: 8rem; overflow: auto; font: 12px ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Message Hub demo</h1>
+  <p>Open as <code>/demo.html?channel=ch_xxx</code>. The widget script is loaded with a plain script tag.</p>
+  <fieldset>
+    <legend>Page language (&lt;html lang&gt;) and widget API</legend>
+    <button type="button" data-locale="en">setLocale('en')</button>
+    <button type="button" data-locale="vi">setLocale('vi')</button>
+    <button type="button" id="open">open()</button>
+    <button type="button" id="reinit">destroy() + init()</button>
+    <button type="button" id="identify">identify({ name: 'Demo user' })</button>
+  </fieldset>
+  <fieldset>
+    <legend>Live preview (unsaved settings, no visitor is created)</legend>
+    <textarea id="settings" aria-label="Settings JSON">{ "theme": { "color": "#0b5fff", "radius": "lg" }, "content": { "brandName": { "en": "Preview brand" } } }</textarea>
+    <p>
+      <label>Screen <select id="screen"><option>welcome</option><option>prechat</option><option>chat</option></select></label>
+      <label>Locale <select id="plocale"><option>en</option><option>vi</option></select></label>
+      <button type="button" id="apply">Apply</button>
+    </p>
+    <iframe id="preview" title="Preview"></iframe>
+  </fieldset>
+  <h2>Events</h2>
+  <pre id="log" aria-live="polite"></pre>
+  <script>
+    const channel = new URLSearchParams(location.search).get('channel');
+    const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+    if (!channel) { log('Add ?channel=ch_xxx to the URL'); } else {
+      const s = document.createElement('script');
+      s.src = '/embed/' + channel + '.js';
+      s.async = true;
+      s.onload = () => {
+        ['ready', 'open', 'close', 'message', 'unread'].forEach((e) => window.MessageHub.on(e, (p) => log(e + ' ' + (p ? JSON.stringify(p) : ''))));
+      };
+      document.head.appendChild(s);
+      const frame = document.getElementById('preview');
+      frame.src = '/w/' + channel + '?preview=1';
+      const apply = () => frame.contentWindow.postMessage({ type: 'mh:preview', settings: JSON.parse(document.getElementById('settings').value), screen: document.getElementById('screen').value, locale: document.getElementById('plocale').value }, '*');
+      document.getElementById('apply').onclick = apply;
+      frame.addEventListener('load', () => setTimeout(apply, 300));
+    }
+    document.querySelectorAll('[data-locale]').forEach((b) => (b.onclick = () => { document.documentElement.lang = b.dataset.locale; window.MessageHub.setLocale(b.dataset.locale); }));
+    document.getElementById('open').onclick = () => window.MessageHub.open();
+    document.getElementById('reinit').onclick = () => { window.MessageHub.destroy(); window.MessageHub.init({}); };
+    document.getElementById('identify').onclick = () => window.MessageHub.identify({ name: 'Demo user' });
+  </script>
+</body>
+</html>

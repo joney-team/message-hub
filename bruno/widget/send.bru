@@ -1,0 +1,23 @@
+meta {
+  name: Widget: send message
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/widget/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{visitorToken}}
+}
+
+body:json {
+{
+  "text": "Hi from Bruno",
+  "clientMessageId": "bruno-1",
+  "context": { "url": "https://example.com/pricing", "title": "Pricing" }
+}
+}

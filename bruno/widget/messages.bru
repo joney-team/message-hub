@@ -1,0 +1,15 @@
+meta {
+  name: Widget: history
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/widget/messages?limit=30
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{visitorToken}}
+}

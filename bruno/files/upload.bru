@@ -1,0 +1,20 @@
+meta {
+  name: Upload file (to attach to a reply)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/files
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:multipartForm {
+  channelId: {{channelId}}
+  file: @file(./example.png)
+}

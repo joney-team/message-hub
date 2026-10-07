@@ -1,0 +1,19 @@
+meta {
+  name: List webhook deliveries
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/deliveries?status=failed
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+vars:post-response {
+deliveryId: res.body.data[0].id
+}

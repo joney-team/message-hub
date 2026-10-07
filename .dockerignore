@@ -1,0 +1,9 @@
+.git
+node_modules
+.next
+data
+docs
+bruno
+.env
+.env.*
+*.md

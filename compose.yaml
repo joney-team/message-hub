@@ -1,0 +1,18 @@
+services:
+  message-hub:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      API_KEYS: ${API_KEYS:?Set API_KEYS in .env}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:4200}
+      FILES_BASE_URL: ${FILES_BASE_URL:-http://localhost:4200}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-0}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      MESSAGE_RETENTION_DAYS: ${MESSAGE_RETENTION_DAYS:-0}
+    volumes:
+      - message-hub-data:/data
+
+volumes:
+  message-hub-data:

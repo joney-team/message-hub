@@ -1,0 +1,21 @@
+meta {
+  name: Update channel (settings deep-merge)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/channels/{{channelId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+{
+  "settings": { "theme": { "logo": null }, "launcher": { "label": { "en": "Chat with us" } } }
+}
+}

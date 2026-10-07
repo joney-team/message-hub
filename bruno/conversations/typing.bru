@@ -1,0 +1,21 @@
+meta {
+  name: Typing indicator
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/visitors/{{visitorId}}/typing
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+{
+  "sender": { "name": "Ann" }
+}
+}

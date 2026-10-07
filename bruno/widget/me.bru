@@ -1,0 +1,15 @@
+meta {
+  name: Widget: me
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/widget/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{visitorToken}}
+}

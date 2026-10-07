@@ -1,0 +1,15 @@
+meta {
+  name: List messages
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/visitors/{{visitorId}}/messages?limit=50
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}

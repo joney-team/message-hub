@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Message Hub strict CSP test</title>
+  <script>
+    // Serve this file from a DIFFERENT origin than the hub (e.g. `python3 -m http.server 4400`)
+    // and open it as /csp-test.html?hub=http://localhost:4200&channel=ch_xxx.
+    // The policy below is what a strict customer site looks like: scripts and frames only from
+    // the hub, styles only from the page's own origin, no connect-src (default-src 'none').
+    // It is set from script so the hub origin can come from the URL; the loader is added
+    // after the policy exists, so every later violation is enforced.
+    var q = new URLSearchParams(location.search);
+    var hub = q.get('hub') || 'http://localhost:4200';
+    var csp = document.createElement('meta');
+    csp.httpEquiv = 'Content-Security-Policy';
+    csp.content = "default-src 'none'; script-src 'self' " + hub + "; frame-src " + hub + "; style-src 'self'; img-src 'self' data:";
+    document.head.appendChild(csp);
+    window.addEventListener('securitypolicyviolation', function (e) {
+      console.log('CSP-VIOLATION ' + e.violatedDirective + ' ' + e.blockedURI);
+    });
+    var s = document.createElement('script');
+    s.src = hub + '/embed/' + q.get('channel') + '.js';
+    s.async = true;
+    document.head.appendChild(s);
+  </script>
+</head>
+<body>
+  <h1>Strict CSP host page</h1>
+  <p>The chat button should appear bottom right and open the chat despite the policy.</p>
+</body>
+</html>

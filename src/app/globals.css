@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+/* Everything a channel can customise reaches the UI as CSS variables set on .mh-root
+   (see src/widget/theme.ts); there is no free-form CSS from outside. */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-surface: var(--mh-surface);
+  --color-surface-2: var(--mh-surface-2);
+  --color-fg: var(--mh-fg);
+  --color-muted: var(--mh-muted);
+  --color-line: var(--mh-border);
+  --color-danger: var(--mh-danger);
+  --radius-mh: var(--mh-radius);
+  --radius-mh-sm: calc(var(--mh-radius) * 0.6);
+}
+
+.mh-root {
+  --mh-surface: #ffffff;
+  --mh-surface-2: #f3f4f6;
+  --mh-fg: #111827;
+  --mh-muted: #4b5563;
+  --mh-border: #e5e7eb;
+  --mh-danger: #b91c1c;
+  color-scheme: light;
+  font-family: var(--mh-font, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+}
+
+.mh-root[data-scheme='dark'] {
+  --mh-surface: #111827;
+  --mh-surface-2: #1f2937;
+  --mh-fg: #f3f4f6;
+  --mh-muted: #9ca3af;
+  --mh-border: #374151;
+  --mh-danger: #fca5a5;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mh-root[data-scheme='auto'] {
+    --mh-surface: #111827;
+    --mh-surface-2: #1f2937;
+    --mh-fg: #f3f4f6;
+    --mh-muted: #9ca3af;
+    --mh-border: #374151;
+    --mh-danger: #fca5a5;
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  background: transparent;
+}
+
+/* Typing area grows with its content where supported; useAutosize covers the rest. */
+.mh-textarea {
+  field-sizing: content;
+  min-height: 2.5rem;
+  max-height: 8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mh-root * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

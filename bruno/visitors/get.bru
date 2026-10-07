@@ -1,0 +1,15 @@
+meta {
+  name: Get visitor
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/visitors/{{visitorId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}

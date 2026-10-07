@@ -1,0 +1,22 @@
+meta {
+  name: Reply to visitor
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/visitors/{{visitorId}}/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+{
+  "text": "Hello! How can I help?",
+  "sender": { "name": "Ann", "avatar": "https://example.com/ann.png" }
+}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Delete conversation
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/visitors/{{visitorId}}/messages
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}

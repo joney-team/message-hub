@@ -1,0 +1,12 @@
+node_modules
+.next
+next-env.d.ts
+*.tsbuildinfo
+/data
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.deploy.example
+*.local.bru
+/backups

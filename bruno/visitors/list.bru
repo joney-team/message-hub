@@ -1,0 +1,19 @@
+meta {
+  name: List visitors of a channel
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/channels/{{channelId}}/visitors
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+vars:post-response {
+visitorId: res.body.data[0].id
+}

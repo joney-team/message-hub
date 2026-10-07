@@ -1,0 +1,23 @@
+meta {
+  name: Widget: create session
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/widget/sessions
+  body: json
+  auth: none
+}
+
+body:json {
+{
+  "channelId": "{{channelId}}",
+  "locale": "en",
+  "profile": { "name": "Test visitor" }
+}
+}
+
+vars:post-response {
+visitorToken: res.body.token
+}
