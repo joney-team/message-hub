@@ -4,10 +4,10 @@ title: Tùy biến cho dự án chính
 domain: message-hub
 category: Integration
 status: stable
-version: 1.0.0
+version: 1.0.2
 owner: maintainers
 last_verified: 2026-10-07
-modules: [src/settings, src/widget/theme.ts, src/widget/components/PreChat.tsx, src/app/api/v1/meta, src/loader]
+modules: [src/settings, src/widget/theme.ts, src/widget/components/PreChat.tsx, src/app/api/v1/meta, src/studio, src/loader]
 entities: [channels]
 routes: [GET /api/v1/meta, PATCH /api/v1/channels/[id], "GET /w/[channelId]?preview=1"]
 related_plans: []
@@ -20,7 +20,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Tổng quan
 
-Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần.
+Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần. Message Hub cũng có Channel Studio tại `/` để người vận hành thực hiện luồng này trực tiếp bằng API key.
 
 ### Quyết định sản phẩm
 
@@ -41,9 +41,11 @@ related_features: [channels, i18n, widget-sdk]
 
 **US-6 — Nút riêng:** Là lập trình viên, tôi muốn ẩn nút mặc định và tự mở chat.
 
+**US-7 — Studio:** Là người vận hành, tôi muốn chỉnh style, colors, text, hành vi và raw settings với live preview để kiểm tra và debug channel.
+
 ### Phạm vi
 
-- Trong: `ChannelSettings`, `meta`, preview, `identify`, `sender`, "đang soạn", ngữ cảnh trang.
+- Trong: `ChannelSettings`, `meta`, Channel Studio, preview, `identify`, `sender`, "đang soạn", ngữ cảnh trang.
 - Ngoài: CSS/HTML tùy ý, theme builder.
 
 ### Quy tắc nghiệp vụ
@@ -62,6 +64,8 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-7** — `MessageHub.identify(profile)` chỉ nhận khóa hợp lệ, giá trị chuỗi/số, tối đa 20 trường; **không xác minh** — không dùng để cấp quyền.
 
+**BR-8** — Channel Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug và iframe preview cho `welcome | prechat | chat`; thay đổi chỉ lưu sau khi API chấp nhận.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Settings thiếu trường vẫn ra object đầy đủ; PATCH từng phần giữ phần còn lại; override key lạ bị từ chối (`tests/api-v1.test.ts`).
@@ -69,6 +73,8 @@ related_features: [channels, i18n, widget-sdk]
 **AC-2** — `SETTINGS_DEFAULTS` của trình duyệt bằng default zod; preview từ chối màu/logo nguy hiểm (`tests/widget-logic.test.ts`).
 
 **AC-3** — Trang `public/demo.html` áp preview ngay khi bấm Apply và không tạo visitor (đã kiểm Chrome + DB 2026-10-07).
+
+**AC-4** — Channel Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; Save gửi settings đã chỉnh qua management API.
 
 ---
 
@@ -83,6 +89,7 @@ related_features: [channels, i18n, widget-sdk]
 | Theme → biến CSS | `src/widget/theme.ts`, `src/app/globals.css` |
 | Form trước khi chat | `src/widget/components/PreChat.tsx` |
 | `meta` | `src/app/api/v1/meta/route.ts` |
+| Channel Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
 | Trang thử preview | `public/demo.html` |
 
 ### API

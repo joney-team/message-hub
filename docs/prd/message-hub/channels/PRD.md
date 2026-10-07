@@ -4,10 +4,10 @@ title: Channels
 domain: message-hub
 category: Core
 status: stable
-version: 1.0.0
+version: 1.0.2
 owner: maintainers
 last_verified: 2026-10-07
-modules: [src/server/services/channels.ts, src/app/api/v1/channels, src/server/http/auth.ts, scripts/reset-data.mjs]
+modules: [src/server/services/channels.ts, src/app/api/v1/channels, src/server/http/auth.ts, src/studio, scripts/reset-data.mjs]
 entities: [channels]
 routes: [GET/POST /api/v1/channels, GET/PATCH/DELETE /api/v1/channels/[id], PUT /api/v1/channels/[id]/webhook, POST /api/v1/channels/[id]/rotate-secret, GET /api/v1/channels/[id]/visitors, GET /api/widget/channels/[id]]
 related_plans: []
@@ -20,12 +20,12 @@ related_features: [widget-sdk, conversations, webhooks, customization]
 
 ### Tổng quan
 
-Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính tạo channel qua API cho từng workspace, nhận về `id` để dựng thẻ `<script src=".../embed/<id>.js">`, và khai báo `webhookUrl` để nhận tin của visitor. Không có giao diện quản trị trong Message Hub: mọi thao tác đi qua API.
+Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính tạo channel qua API cho từng workspace, nhận về `id` để dựng thẻ `<script src=".../embed/<id>.js">`, và khai báo `webhookUrl` để nhận tin của visitor. Người vận hành cũng có thể nhập API key tại Channel Studio (`/`) để xem, tạo, sửa và debug các channel thuộc key đó.
 
 ### Quyết định sản phẩm
 
 - Nhiều dự án chính dùng chung một instance qua `API_KEYS=name:key,…`; `name` là `owner` và cô lập dữ liệu giữa các dự án.
-- Không có bảng/UI quản lý key; xoay key bằng cách thêm key mới cùng tên rồi bỏ key cũ.
+- Không có bảng quản lý key; Channel Studio chỉ giữ key trong `sessionStorage` của tab. Xoay key bằng cách thêm key mới cùng tên rồi bỏ key cũ.
 - Xóa channel xóa luôn visitor, tin nhắn, delivery và file của nó.
 
 ### User Stories
@@ -40,10 +40,13 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 
 **US-5 — Xoay secret webhook:** Là ứng dụng chính, tôi muốn đổi `webhookSecret` khi nghi ngờ bị lộ.
 
+**US-6 — Kiểm tra trực quan:** Là người vận hành, tôi muốn dùng API key để xem toàn bộ channel, sửa cấu hình và xem preview mà không cần tự gọi API.
+
 ### Phạm vi
 
 #### Trong phạm vi
 - CRUD channel, lọc theo `ref`, phân trang, xoay secret.
+- Channel Studio cho danh sách toàn bộ channel của API key, tạo channel, sửa metadata/settings/webhook và xem thông tin debug.
 - `allowedOrigins` → `frame-ancestors` của trang chat.
 - Cấu hình công khai chỉ đọc cho iframe/loader (`GET /api/widget/channels/[id]`).
 
@@ -64,6 +67,8 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 
 **BR-6** — `connectedAt` được ghi đúng một lần, ở lần đầu `/embed/<id>.js` được tải.
 
+**BR-7** — Channel Studio gọi các API public hiện có từ browser, giữ API key trong state và `sessionStorage` của tab, không đưa key vào URL hoặc server-rendered payload.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Hai API key khác `owner` không đọc/sửa/xóa được channel của nhau (test `tests/api-v1.test.ts`).
@@ -73,6 +78,8 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 **AC-3** — Xóa channel xóa file của nó trên đĩa (`tests/files.test.ts`).
 
 **AC-4** — API webhook riêng cập nhật/xóa URL, giữ nguyên secret, từ chối URL sai và channel của owner khác (`tests/api-v1.test.ts`).
+
+**AC-5** — Channel Studio tải đủ danh sách phân trang, cho chọn/tạo/sửa channel và chỉ persist khi bấm Save; lỗi validation từ API được hiển thị tại form.
 
 ---
 
@@ -87,6 +94,7 @@ Channel là đơn vị cấu hình của một widget chat. Ứng dụng chính 
 | Routes | `src/app/api/v1/channels/**`, `src/app/api/widget/channels/[id]/route.ts` |
 | Auth | `src/server/http/auth.ts`, `src/server/config.ts` (`API_KEYS`) |
 | Settings | `src/settings/` |
+| Operator UI | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx`, `src/studio/types.ts` |
 | Reset dữ liệu vận hành | `scripts/reset-data.mjs` |
 
 ### Data Model
