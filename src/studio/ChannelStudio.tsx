@@ -650,6 +650,7 @@ export function ChannelStudio() {
 
 function LauncherPreview({ settings, locale }: { settings: ChannelSettings; locale: string }) {
   const preview = completeSettings(settings);
+  const launcherColor = preview.launcher.color ?? preview.theme.color;
   const label = localize(preview.launcher.label, locale, preview.defaultLocale);
   const side = preview.launcher.position;
   const iconUrl = preview.launcher.icon ?? null;
@@ -680,8 +681,8 @@ function LauncherPreview({ settings, locale }: { settings: ChannelSettings; loca
           aria-label="Launcher preview"
           style={{
             ...position,
-            color: readableOn(preview.theme.color),
-            background: preview.theme.color,
+            color: readableOn(launcherColor),
+            background: launcherColor,
             fontFamily: preview.theme.fontFamily,
             width: label ? 'auto' : 56,
             padding: label ? '0 20px 0 16px' : 0,
@@ -1024,6 +1025,9 @@ function BehaviorTab({
   setLocale,
   update,
 }: SettingsTabProps & { meta: StudioMeta; locale: string; setLocale: (locale: string) => void }) {
+  const previewSettings = completeSettings(settings);
+  const launcherColor = previewSettings.launcher.color ?? previewSettings.theme.color;
+
   return (
     <div className="studio-sections">
       <LocaleBar settings={settings} meta={meta} locale={locale} setLocale={setLocale} update={update} />
@@ -1038,6 +1042,20 @@ function BehaviorTab({
                 ['right', 'Right'],
               ]}
             />
+          </Field>
+          <Field label="Launcher color" hint="Leave empty to use the brand color">
+            <div className="studio-color-input">
+              <input
+                type="color"
+                value={launcherColor}
+                onChange={(event) => update((next) => (next.launcher.color = event.target.value))}
+              />
+              <input
+                placeholder={settings.theme.color}
+                value={settings.launcher.color ?? ''}
+                onChange={(event) => update((next) => (next.launcher.color = event.target.value || undefined))}
+              />
+            </div>
           </Field>
           <Field label="Label">
             <input

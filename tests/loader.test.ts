@@ -178,7 +178,7 @@ describe('returning visitors (token already stored)', () => {
 });
 
 describe('launcher settings', () => {
-  it('applies position, offset, z-index and brand colour through the CSSOM', () => {
+  it('uses the brand colour for the launcher when no custom colour is set', () => {
     load(config({ launcher: { position: 'left', offset: { x: 30, y: 40 }, zIndex: 777 }, theme: { color: '#ffd400' } }));
     const b = button();
     expect(b.style.left).toBe('30px');
@@ -186,6 +186,13 @@ describe('launcher settings', () => {
     expect(b.style.zIndex).toBe('777');
     expect(b.style.background).toContain('rgb(255, 212, 0)');
     expect(b.style.color).toMatch(/17, 24, 39|#111827/);
+  });
+
+  it('applies a custom launcher colour with a readable foreground', () => {
+    load(config({ launcher: { color: '#0057ff' }, theme: { color: '#ffd400' } }));
+    const b = button();
+    expect(b.style.background).toContain('rgb(0, 87, 255)');
+    expect(b.style.color).toMatch(/255, 255, 255|#ffffff/);
   });
 
   it('uses the mobile launcher offset and opens the chat across the full viewport', () => {
@@ -356,7 +363,14 @@ describe('postMessage security', () => {
 describe('embed config', () => {
   it('has a complete launcher config even for empty settings', () => {
     const c = config();
-    expect(c.launcher).toMatchObject({ position: 'right', hidden: false, offset: { x: 20, y: 20 }, mobileOffset: { x: 16, y: 16 } });
+    expect(c.launcher).toMatchObject({
+      color: '#1f2937',
+      fg: '#ffffff',
+      position: 'right',
+      hidden: false,
+      offset: { x: 20, y: 20 },
+      mobileOffset: { x: 16, y: 16 },
+    });
     expect(c.window).toEqual(DEFAULT_SETTINGS.window);
     expect(c.strings.en.open).toBe('Open chat');
     expect(c.strings.vi.open).toBe('Mở chat');

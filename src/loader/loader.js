@@ -315,7 +315,7 @@ var api = {
       var btnStyles = {
         width: '56px', height: '56px', minWidth: '56px', borderRadius: '28px', border: '0', padding: '0', margin: '0',
         cursor: 'pointer', alignItems: 'center', justifyContent: 'center', gap: '8px',
-        background: c.theme.color, color: c.theme.fg, boxShadow: '0 6px 20px rgba(0,0,0,.28)',
+        background: c.launcher.color, color: c.launcher.fg, boxShadow: '0 6px 20px rgba(0,0,0,.28)',
         font: '600 14px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', outline: 'none',
       };
       var button = el('button', btnStyles, { type: 'button' });
@@ -347,7 +347,7 @@ var api = {
       button.addEventListener('focus', function () {
         var visible = false;
         try { visible = button.matches(':focus-visible'); } catch (e) { visible = true; }
-        if (visible) css(button, { outline: '3px solid ' + c.theme.fg, outlineOffset: '2px', boxShadow: '0 0 0 5px ' + c.theme.color + ', 0 6px 20px rgba(0,0,0,.28)' });
+        if (visible) css(button, { outline: '3px solid ' + c.launcher.fg, outlineOffset: '2px', boxShadow: '0 0 0 5px ' + c.launcher.color + ', 0 6px 20px rgba(0,0,0,.28)' });
       });
       button.addEventListener('blur', function () { css(button, { outline: 'none', boxShadow: '0 6px 20px rgba(0,0,0,.28)' }); });
       button.addEventListener('click', function () { api.toggle(); });

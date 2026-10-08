@@ -1,6 +1,6 @@
 {
   "name": "message-hub",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Self-hosted embeddable customer chat widget with SQLite, signed webhooks, and realtime replies.",
   "private": true,
   "packageManager": "pnpm@10.11.0",

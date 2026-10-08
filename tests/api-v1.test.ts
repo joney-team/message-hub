@@ -187,13 +187,19 @@ describe('settings', () => {
   it('PATCH deep-merges, and null unsets an optional value', async () => {
     const created = await call(channelsRoute.POST, KEY_A, {
       method: 'POST',
-      body: { name: 'x', settings: { theme: { color: '#112233', logo: 'https://x.test/l.png' }, launcher: { hidden: true } } },
+      body: { name: 'x', settings: { theme: { color: '#112233', logo: 'https://x.test/l.png' }, launcher: { color: '#abcdef', hidden: true } } },
     });
+    expect(created.body.settings.launcher.color).toBe('#abcdef');
     const params = { id: created.body.id };
-    const r = await call(channelRoute.PATCH, KEY_A, { method: 'PATCH', params, body: { settings: { theme: { radius: 'lg', logo: null }, content: { welcomeTitle: { en: 'Hi' } } } } });
+    const r = await call(channelRoute.PATCH, KEY_A, {
+      method: 'PATCH',
+      params,
+      body: { settings: { theme: { radius: 'lg', logo: null }, launcher: { color: null }, content: { welcomeTitle: { en: 'Hi' } } } },
+    });
     expect(r.status).toBe(200);
     expect(r.body.settings.theme).toMatchObject({ color: '#112233', radius: 'lg' });
     expect(r.body.settings.theme.logo).toBeUndefined();
+    expect(r.body.settings.launcher.color).toBeUndefined();
     expect(r.body.settings.launcher.hidden).toBe(true);
     expect(r.body.settings.content.welcomeTitle).toEqual({ en: 'Hi' });
   });
@@ -204,6 +210,7 @@ describe('settings', () => {
     ['unsupported locale', { locales: ['en', 'xx'] }],
     ['defaultLocale outside locales', { locales: ['en'], defaultLocale: 'vi' }],
     ['bad color', { theme: { color: 'red; background:url(x)' } }],
+    ['bad launcher color', { launcher: { color: 'red; background:url(x)' } }],
     ['javascript: logo', { theme: { logo: 'javascript:alert(1)' } }],
     ['unknown field', { customCss: 'body{}' }],
     ['duplicate pre-chat key', { preChat: { mode: 'optional', fields: [{ key: 'a', type: 'text' }, { key: 'a', type: 'email' }] } }],

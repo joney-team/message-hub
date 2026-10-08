@@ -511,7 +511,8 @@ Quy tắc của `PATCH`:
 | | `radius` | `none`, `sm`, `md`, `lg` | `md` |
 | | `fontFamily` | Tên font có sẵn trên máy visitor (không tải webfont) | Font hệ thống |
 | | `logo` | URL ảnh `http(s)` | — |
-| `launcher` | `position` | `left`, `right` | `right` |
+| `launcher` | `color` | Mã hex 6 chữ số; bỏ trường hoặc gửi `null` để dùng `theme.color` | Màu thương hiệu |
+| | `position` | `left`, `right` | `right` |
 | | `offset` | Vị trí desktop: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 20, y: 20 }` |
 | | `mobileOffset` | Vị trí mobile: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 16, y: 16 }` |
 | | `icon` | URL ảnh thay cho icon mặc định | — |

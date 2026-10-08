@@ -11,6 +11,7 @@ type ChannelLike = { id: string; settings: unknown };
 /** The data the loader needs to draw the launcher without any network request. */
 export function loaderConfig(channel: ChannelLike) {
   const s = normalizeSettings(channel.settings, channel.id);
+  const launcherColor = s.launcher.color ?? s.theme.color;
   const strings: Record<string, { open: string; close: string }> = {};
   for (const locale of s.locales) {
     const base = ALL_CATALOGS[locale] ?? ALL_CATALOGS.en;
@@ -21,6 +22,8 @@ export function loaderConfig(channel: ChannelLike) {
     channelId: channel.id,
     theme: { color: s.theme.color, fg: readableOn(s.theme.color), radius: RADIUS[s.theme.radius] },
     launcher: {
+      color: launcherColor,
+      fg: readableOn(launcherColor),
       position: s.launcher.position,
       offset: s.launcher.offset,
       mobileOffset: s.launcher.mobileOffset,

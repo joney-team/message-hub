@@ -57,6 +57,7 @@ export function completeSettings(input: unknown): ChannelSettings {
   s.theme.radius = oneOf(s.theme.radius, ['none', 'sm', 'md', 'lg'], 'md');
   s.theme.fontFamily = typeof s.theme.fontFamily === 'string' && FONT.test(s.theme.fontFamily) ? s.theme.fontFamily : undefined;
   s.theme.logo = httpUrl(s.theme.logo);
+  s.launcher.color = typeof s.launcher.color === 'string' && HEX.test(s.launcher.color) ? s.launcher.color : undefined;
   s.launcher.position = oneOf(s.launcher.position, ['left', 'right'], 'right');
   s.launcher.offset = launcherOffset(s.launcher.offset, SETTINGS_DEFAULTS.launcher.offset);
   s.launcher.mobileOffset = launcherOffset(s.launcher.mobileOffset, SETTINGS_DEFAULTS.launcher.mobileOffset);

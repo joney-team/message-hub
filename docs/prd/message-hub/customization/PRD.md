@@ -52,7 +52,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Quy tắc nghiệp vụ
 
-**BR-1** — `ChannelSettings` gồm `theme {color, colorScheme, radius, fontFamily?, logo?}`, `launcher {position, offset, mobileOffset, icon?, label?, hidden, zIndex}`, `window {width, height}`, `locales`, `defaultLocale`, `content {brandName, welcomeTitle, welcomeSubtitle, greeting, starters, overrides}`, `preChat {mode, fields[]}`, `features {attachments, sound}`. `offset` áp dụng trên desktop, `mobileOffset` áp dụng trên mobile; khi mở trên mobile, khung chat phủ toàn bộ viewport. Giá trị mặc định trong `src/settings/schema.ts`.
+**BR-1** — `ChannelSettings` gồm `theme {color, colorScheme, radius, fontFamily?, logo?}`, `launcher {color?, position, offset, mobileOffset, icon?, label?, hidden, zIndex}`, `window {width, height}`, `locales`, `defaultLocale`, `content {brandName, welcomeTitle, welcomeSubtitle, greeting, starters, overrides}`, `preChat {mode, fields[]}`, `features {attachments, sound}`. `launcher.color` để trống thì dùng `theme.color`; `offset` áp dụng trên desktop, `mobileOffset` áp dụng trên mobile; khi mở trên mobile, khung chat phủ toàn bộ viewport. Giá trị mặc định trong `src/settings/schema.ts`.
 
 **BR-2** — Màu là hex 6 ký tự; `fontFamily` chỉ chữ/số/khoảng trắng/dấu phẩy/ngoặc kép/gạch nối; URL logo/icon chỉ `http(s)`; trường lạ bị từ chối. Máy chủ luôn chuẩn hóa đủ trường nên widget không nhận object thiếu. Khi giá trị đã lưu bị hỏng, chỉ phần (section cấp cao nhất) hỏng lùi về mặc định, phần còn lại được giữ, và channel bị ảnh hưởng được ghi log `[hub] channel <id>: stored settings are invalid in […]` (một lần mỗi tiến trình).
 
@@ -66,7 +66,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-7** — `MessageHub.identify(profile)` chỉ nhận khóa hợp lệ, giá trị chuỗi/số, tối đa 20 trường; **không xác minh** — không dùng để cấp quyền.
 
-**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, launcher preview, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận. Launcher preview mô phỏng button 56 px/pill của loader với brand color, custom icon, localized label, desktop offset và trạng thái `hidden`.
+**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, launcher preview, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận. Launcher preview mô phỏng button 56 px/pill của loader với custom launcher color hoặc brand color khi không override, custom icon, localized label, desktop offset và trạng thái `hidden`.
 
 ### Tiêu chí nghiệm thu
 
