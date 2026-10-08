@@ -10,8 +10,8 @@ Trạng thái: ✅ đã có Spec · 📝 chưa viết.
 |---|---|---|---|
 | channels | [✅](message-hub/channels/PRD.md) | stable | `services/channels`, `app/api/v1/channels` |
 | widget-sdk | [✅](message-hub/widget-sdk/PRD.md) | stable | `loader/`, `app/embed`, `app/w`, `proxy.ts`, `widget/useHost` |
-| conversations | [✅](message-hub/conversations/PRD.md) | stable | `services/{sessions,messages,visitors}`, `realtime/`, `app/api/widget`, `widget/` |
+| conversations | [✅](message-hub/conversations/PRD.md) | stable | `services/{sessions,messages,visitors,conversations}`, `realtime/`, `app/api/widget`, `app/api/v1/conversations`, `widget/`, `studio/Inbox` |
 | files | [✅](message-hub/files/PRD.md) | stable | `services/files`, `files-policy`, `app/files`, `http/multipart` |
 | webhooks | [✅](message-hub/webhooks/PRD.md) | stable | `queue/`, `services/deliveries`, `app/api/v1/deliveries` |
 | i18n | [✅](message-hub/i18n/PRD.md) | stable | `i18n/`, `widget/I18n.tsx` |
-| customization | [✅](message-hub/customization/PRD.md) | stable | `settings/`, `widget/theme.ts`, `app/api/v1/meta`, preview |
+| customization | [✅](message-hub/customization/PRD.md) | stable | `settings/`, `widget/theme.ts`, `app/api/v1/meta`, Studio preview |

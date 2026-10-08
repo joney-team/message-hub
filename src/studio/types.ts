@@ -34,6 +34,45 @@ export interface DeliveryDto {
   deliveredAt: string | null;
 }
 
+export interface StudioAttachment {
+  fileId: string;
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+}
+
+export interface StudioMessageDto {
+  id: string;
+  seq: number;
+  direction: 'inbound' | 'outbound';
+  text: string;
+  attachments: StudioAttachment[];
+  sender: { id?: string; name?: string; avatar?: string } | null;
+  context: { url?: string; title?: string; referrer?: string } | null;
+  clientMessageId: string | null;
+  createdAt: string;
+}
+
+export interface ConversationDto {
+  visitor: {
+    id: string;
+    channelId: string;
+    locale: string | null;
+    profile: Record<string, string | number>;
+    userAgent: string | null;
+    origin: string | null;
+    lastSeenAt: string;
+    createdAt: string;
+  };
+  channel: {
+    id: string;
+    name: string;
+    ref: string | null;
+  };
+  latestMessage: StudioMessageDto;
+}
+
 export interface ApiErrorBody {
   error?: { code?: string; message?: string };
 }

@@ -10,6 +10,7 @@ import {
   Code2,
   Eye,
   EyeOff,
+  Inbox as InboxIcon,
   ListRestart,
   LogOut,
   MessageCircle,
@@ -25,8 +26,12 @@ import {
   Webhook,
 } from 'lucide-react';
 import Image from 'next/image';
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { localize } from '@/i18n';
+import { completeSettings } from '@/settings/defaults';
 import type { ChannelSettings, LocalizedText } from '@/settings/schema';
+import { readableOn } from '@/widget/theme';
+import { Inbox } from './Inbox';
 import {
   buildMergePatch,
   copyChannel,
@@ -40,6 +45,8 @@ import {
 
 type Tab = 'general' | 'appearance' | 'content' | 'behavior' | 'deliveries' | 'debug';
 type PreviewScreen = 'welcome' | 'prechat' | 'chat';
+type PreviewMode = 'launcher' | PreviewScreen;
+type StudioView = 'inbox' | 'channels';
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 type DeliveryFilter = 'all' | DeliveryDto['status'];
 
@@ -107,9 +114,10 @@ export function ChannelStudio() {
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [retryingDeliveryId, setRetryingDeliveryId] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [view, setView] = useState<StudioView>('inbox');
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<Tab>('general');
-  const [previewScreen, setPreviewScreen] = useState<PreviewScreen>('welcome');
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('launcher');
   const [previewLocale, setPreviewLocale] = useState('en');
   const [rawSettings, setRawSettings] = useState('');
   const iframe = useRef<HTMLIFrameElement>(null);
@@ -155,10 +163,15 @@ export function ChannelStudio() {
   const sendPreview = useCallback(() => {
     if (!draft || !iframe.current?.contentWindow) return;
     iframe.current.contentWindow.postMessage(
-      { type: 'mh:preview', settings: draft.settings, locale: previewLocale, screen: previewScreen },
+      {
+        type: 'mh:preview',
+        settings: draft.settings,
+        locale: previewLocale,
+        screen: previewMode === 'launcher' ? 'welcome' : previewMode,
+      },
       window.location.origin,
     );
-  }, [draft, previewLocale, previewScreen]);
+  }, [draft, previewLocale, previewMode]);
 
   useEffect(() => {
     sendPreview();
@@ -306,6 +319,7 @@ export function ChannelStudio() {
       });
       setChannels((items) => [created, ...items]);
       selectChannel(created);
+      setView('channels');
       setTab('general');
       setNotice({ tone: 'success', text: 'Channel created' });
     } catch (error) {
@@ -365,7 +379,7 @@ export function ChannelStudio() {
           <Image className="studio-brand-mark" src="/message-hub-mark.svg" alt="" width={76} height={49} priority />
           <p className="studio-kicker">Message Hub</p>
           <h1>Message Hub Studio</h1>
-          <p className="studio-login-copy">Inspect, customize and debug every channel owned by an API key.</p>
+          <p className="studio-login-copy">Manage customer conversations, customize channels and inspect delivery health.</p>
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -401,7 +415,7 @@ export function ChannelStudio() {
   }
 
   return (
-    <main className="studio-shell">
+    <main className={`studio-shell${view === 'inbox' ? ' studio-shell-inbox' : ''}`}>
       <aside className="studio-sidebar">
         <div className="studio-sidebar-head">
           <div>
@@ -417,39 +431,61 @@ export function ChannelStudio() {
             </IconButton>
           </div>
         </div>
-        <div className="studio-search">
-          <Search size={16} aria-hidden="true" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search channels" />
-        </div>
-        <button className="studio-create" type="button" onClick={() => void createChannel()}>
-          <Plus size={17} />
-          New channel
-        </button>
-        <div className="studio-channel-list">
-          {filtered.map((channel) => (
-            <button
-              className="studio-channel"
-              data-active={channel.id === selectedId}
-              key={channel.id}
-              type="button"
-              onClick={() => selectChannel(channel)}
-            >
-              <span className="studio-channel-icon">
-                <MessageCircle size={16} />
-              </span>
-              <span>
-                <strong>{channel.name}</strong>
-                <small>{channel.ref || channel.id}</small>
-              </span>
-              <span className={channel.connectedAt ? 'studio-status live' : 'studio-status'} title={channel.connectedAt ? 'Connected' : 'Not connected'} />
+        <nav className="studio-main-nav" aria-label="Studio">
+          <button type="button" data-active={view === 'inbox'} onClick={() => setView('inbox')}>
+            <InboxIcon size={17} />
+            Inbox
+          </button>
+          <button type="button" data-active={view === 'channels'} onClick={() => setView('channels')}>
+            <Settings2 size={17} />
+            Channels
+          </button>
+        </nav>
+        {view === 'channels' ? (
+          <>
+            <div className="studio-search">
+              <Search size={16} aria-hidden="true" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search channels" />
+            </div>
+            <button className="studio-create" type="button" onClick={() => void createChannel()}>
+              <Plus size={17} />
+              New channel
             </button>
-          ))}
-          {!filtered.length && <p className="studio-empty-list">{channels.length ? 'No matching channels' : 'No channels yet'}</p>}
-        </div>
+            <div className="studio-channel-list">
+              {filtered.map((channel) => (
+                <button
+                  className="studio-channel"
+                  data-active={channel.id === selectedId}
+                  key={channel.id}
+                  type="button"
+                  onClick={() => selectChannel(channel)}
+                >
+                  <span className="studio-channel-icon">
+                    <MessageCircle size={16} />
+                  </span>
+                  <span>
+                    <strong>{channel.name}</strong>
+                    <small>{channel.ref || channel.id}</small>
+                  </span>
+                  <span className={channel.connectedAt ? 'studio-status live' : 'studio-status'} title={channel.connectedAt ? 'Connected' : 'Not connected'} />
+                </button>
+              ))}
+              {!filtered.length && <p className="studio-empty-list">{channels.length ? 'No matching channels' : 'No channels yet'}</p>}
+            </div>
+          </>
+        ) : (
+          <div className="studio-inbox-sidebar-copy">
+            <InboxIcon size={20} />
+            <strong>All customer conversations</strong>
+            <p>Open a thread to review history and reply as the current support agent.</p>
+          </div>
+        )}
         <div className="studio-version">Hub {meta.version || 'unknown'} / API {meta.apiVersion}</div>
       </aside>
 
-      {draft ? (
+      {view === 'inbox' ? (
+        <Inbox apiKey={apiKey} channels={channels} />
+      ) : draft ? (
         <>
           <section className="studio-editor">
             <header className="studio-editor-head">
@@ -564,30 +600,34 @@ export function ChannelStudio() {
             <div className="studio-preview-head">
               <div>
                 <p className="studio-kicker">Live preview</p>
-                <strong>{previewScreen[0].toUpperCase() + previewScreen.slice(1)}</strong>
+                <strong>{previewMode[0].toUpperCase() + previewMode.slice(1)}</strong>
               </div>
               <a href={`/w/${draft.id}`} target="_blank" rel="noreferrer" title="Open live widget">
                 <ArrowUpRight size={17} />
               </a>
             </div>
             <div className="studio-segmented">
-              {(['welcome', 'prechat', 'chat'] as const).map((screen) => (
-                <button key={screen} type="button" data-active={previewScreen === screen} onClick={() => setPreviewScreen(screen)}>
-                  {screen}
+              {(['launcher', 'welcome', 'prechat', 'chat'] as const).map((mode) => (
+                <button key={mode} type="button" data-active={previewMode === mode} onClick={() => setPreviewMode(mode)}>
+                  {mode}
                 </button>
               ))}
             </div>
-            <div className="studio-preview-stage">
-              <iframe
-                ref={iframe}
-                title="Widget preview"
-                src={`/w/${draft.id}?preview=1`}
-                onLoad={sendPreview}
-                style={{
-                  width: `${Math.min(draft.settings.window.width, 440)}px`,
-                  height: `${Math.min(draft.settings.window.height, 720)}px`,
-                }}
-              />
+            <div className="studio-preview-stage" data-mode={previewMode}>
+              {previewMode === 'launcher' ? (
+                <LauncherPreview settings={draft.settings} locale={previewLocale} />
+              ) : (
+                <iframe
+                  ref={iframe}
+                  title="Widget preview"
+                  src={`/w/${draft.id}?preview=1`}
+                  onLoad={sendPreview}
+                  style={{
+                    width: `${Math.min(draft.settings.window.width, 440)}px`,
+                    height: `${Math.min(draft.settings.window.height, 720)}px`,
+                  }}
+                />
+              )}
             </div>
             <p className="studio-preview-note">Preview mode does not create visitors or send messages.</p>
           </aside>
@@ -605,6 +645,58 @@ export function ChannelStudio() {
         </section>
       )}
     </main>
+  );
+}
+
+function LauncherPreview({ settings, locale }: { settings: ChannelSettings; locale: string }) {
+  const preview = completeSettings(settings);
+  const label = localize(preview.launcher.label, locale, preview.defaultLocale);
+  const side = preview.launcher.position;
+  const iconUrl = preview.launcher.icon ?? null;
+  const position: CSSProperties = {
+    bottom: `min(${preview.launcher.offset.y}px, calc(100% - 68px))`,
+    [side]: `min(${preview.launcher.offset.x}px, calc(100% - 68px))`,
+  };
+
+  return (
+    <div className="studio-launcher-preview">
+      <div className="studio-launcher-page">
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+      {preview.launcher.hidden ? (
+        <div className="studio-launcher-hidden">
+          <EyeOff size={18} />
+          <span>Default launcher hidden</span>
+        </div>
+      ) : (
+        <button
+          className="studio-launcher-button"
+          type="button"
+          tabIndex={-1}
+          aria-label="Launcher preview"
+          style={{
+            ...position,
+            color: readableOn(preview.theme.color),
+            background: preview.theme.color,
+            fontFamily: preview.theme.fontFamily,
+            width: label ? 'auto' : 56,
+            padding: label ? '0 20px 0 16px' : 0,
+          }}
+        >
+          {iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- preview of an operator-provided launcher asset
+            <img src={iconUrl} alt="" referrerPolicy="no-referrer" />
+          ) : (
+            <MessageCircle size={26} />
+          )}
+          {label && <span>{label}</span>}
+        </button>
+      )}
+    </div>
   );
 }
 

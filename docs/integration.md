@@ -444,7 +444,7 @@ curl -X POST https://message-hub.example.com/api/v1/visitors/vis_…/messages \
 | Trường | Ý nghĩa |
 |---|---|
 | `text` | Tối đa 4000 ký tự. Là **văn bản thuần**: xuống dòng được giữ, link `http(s)` tự thành liên kết. Markdown và HTML hiển thị nguyên dạng chữ |
-| `sender` | Tùy chọn. `name` và `avatar` hiện cạnh bong bóng tin; `id` để bạn tự đối chiếu |
+| `sender` | Tùy chọn. `name` là tên nhân viên đang chăm sóc và hiện cạnh bong bóng tin trên giao diện khách; `avatar` hiện ảnh, `id` để bạn tự đối chiếu |
 | `attachments` | Tùy chọn, tối đa 10. Xem mục 6.3 |
 
 Phải có `text` hoặc ít nhất một `attachments`.
@@ -745,12 +745,34 @@ Endpoint `PUT …/webhook` không đổi `webhookSecret`. Các delivery còn `pe
 
 | Route | Mô tả |
 |---|---|
+| `GET /api/v1/conversations?channelId=&limit=&offset=` | Inbox hợp nhất của mọi channel thuộc API key, mới nhắn trước; có thể lọc theo `channelId` |
 | `GET /api/v1/channels/{id}/visitors` | Liệt kê visitor, hoạt động gần nhất trước |
 | `GET /api/v1/visitors/{id}` | `{ id, channelId, locale, profile, userAgent, origin, lastSeenAt, createdAt }` |
 | `GET /api/v1/visitors/{id}/messages?before=&limit=` | Lịch sử hội thoại |
 | `POST /api/v1/visitors/{id}/messages` | Trả lời visitor (201) |
 | `DELETE /api/v1/visitors/{id}/messages` | Xóa toàn bộ tin của hội thoại (204) |
 | `POST /api/v1/visitors/{id}/typing` | Báo đang trả lời |
+
+Mỗi phần tử từ `GET /api/v1/conversations` có dạng:
+
+```json
+{
+  "visitor": {
+    "id": "vis_…",
+    "channelId": "ch_…",
+    "locale": "vi",
+    "profile": { "name": "Lan", "phone": "0901234567" },
+    "userAgent": "…",
+    "origin": "https://hoasen.vn",
+    "lastSeenAt": "2026-10-08T08:00:00.000Z",
+    "createdAt": "2026-10-08T07:30:00.000Z"
+  },
+  "channel": { "id": "ch_…", "name": "Nha khoa Hoa Sen", "ref": "workspace_123" },
+  "latestMessage": { "id": "msg_…", "seq": 42, "direction": "inbound", "text": "…", "attachments": [], "sender": null, "context": null, "clientMessageId": "web_1", "createdAt": "2026-10-08T08:00:00.000Z" }
+}
+```
+
+Route chỉ trả visitor đã có ít nhất một tin nhắn. `limit` từ 1 đến 100, mặc định 50; `offset` mặc định 0. Response là `{ data, hasMore }`.
 
 Lịch sử hội thoại phân trang theo con trỏ, khác với các danh sách còn lại:
 

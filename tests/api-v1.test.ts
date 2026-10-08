@@ -10,6 +10,7 @@ import * as channelRoute from '@/app/api/v1/channels/[id]/route';
 import * as rotateRoute from '@/app/api/v1/channels/[id]/rotate-secret/route';
 import * as webhookRoute from '@/app/api/v1/channels/[id]/webhook/route';
 import * as channelVisitorsRoute from '@/app/api/v1/channels/[id]/visitors/route';
+import * as conversationsRoute from '@/app/api/v1/conversations/route';
 import * as visitorRoute from '@/app/api/v1/visitors/[id]/route';
 import * as visitorMessagesRoute from '@/app/api/v1/visitors/[id]/messages/route';
 import * as typingRoute from '@/app/api/v1/visitors/[id]/typing/route';
@@ -46,6 +47,7 @@ describe('auth on /api/v1', () => {
   it('rejects requests without a valid key', async () => {
     expect((await call(channelsRoute.GET, null)).status).toBe(401);
     expect((await call(channelsRoute.GET, 'nope')).status).toBe(401);
+    expect((await call(conversationsRoute.GET, null)).status).toBe(401);
     expect((await call(metaRoute.GET, null)).status).toBe(401);
   });
 });
@@ -276,6 +278,55 @@ describe('conversation endpoints', () => {
     expect(page2.body.data.map((m: { text: string }) => m.text)).toEqual(['m2', 'm3']);
     expect((await call(visitorMessagesRoute.GET, KEY_A, { params, url: 'http://x/?limit=-1' })).status).toBe(400);
     expect((await call(visitorMessagesRoute.GET, KEY_A, { params, url: 'http://x/?limit=9999' })).status).toBe(400);
+  });
+
+  it('lists conversations across owned channels, newest first, and filters by channel', async () => {
+    const channelA = insertChannel('a', { name: 'Sales' });
+    const channelB = insertChannel('a', { name: 'Support' });
+    const foreign = insertChannel('b', { name: 'Private' });
+    const visitorA = insertVisitor(channelA.id).visitor;
+    const visitorB = insertVisitor(channelB.id).visitor;
+    insertVisitor(channelA.id);
+    const foreignVisitor = insertVisitor(foreign.id).visitor;
+
+    await call(visitorMessagesRoute.POST, KEY_A, {
+      method: 'POST',
+      params: { id: visitorA.id },
+      body: { text: 'Older reply', sender: { name: 'Minh' } },
+    });
+    await call(visitorMessagesRoute.POST, KEY_A, {
+      method: 'POST',
+      params: { id: visitorB.id },
+      body: { text: 'Newest reply', sender: { name: 'Lan' } },
+    });
+    await call(visitorMessagesRoute.POST, KEY_B, {
+      method: 'POST',
+      params: { id: foreignVisitor.id },
+      body: { text: 'Hidden reply' },
+    });
+
+    const all = await call(conversationsRoute.GET, KEY_A, {
+      url: 'http://hub.test/api/v1/conversations?limit=10',
+    });
+    expect(all.status).toBe(200);
+    expect(all.body.data).toHaveLength(2);
+    expect(all.body.data.map((item: { channel: { name: string } }) => item.channel.name)).toEqual(['Support', 'Sales']);
+    expect(all.body.data[0].latestMessage).toMatchObject({
+      text: 'Newest reply',
+      sender: { name: 'Lan' },
+    });
+
+    const filtered = await call(conversationsRoute.GET, KEY_A, {
+      url: `http://hub.test/api/v1/conversations?channelId=${channelA.id}`,
+    });
+    expect(filtered.body.data).toHaveLength(1);
+    expect(filtered.body.data[0].visitor.id).toBe(visitorA.id);
+
+    const inaccessible = await call(conversationsRoute.GET, KEY_A, {
+      url: `http://hub.test/api/v1/conversations?channelId=${foreign.id}`,
+    });
+    expect(inaccessible.status).toBe(404);
+    expect(inaccessible.body.error.code).toBe('CHANNEL_NOT_FOUND');
   });
 });
 

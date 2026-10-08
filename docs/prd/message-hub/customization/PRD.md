@@ -6,7 +6,7 @@ category: Integration
 status: stable
 version: 1.0.2
 owner: maintainers
-last_verified: 2026-10-07
+last_verified: 2026-10-08
 modules: [src/settings, src/widget/theme.ts, src/widget/components/PreChat.tsx, src/app/api/v1/meta, src/studio, src/loader]
 entities: [channels]
 routes: [GET /api/v1/meta, PATCH /api/v1/channels/[id], "GET /w/[channelId]?preview=1"]
@@ -43,6 +43,8 @@ related_features: [channels, i18n, widget-sdk]
 
 **US-7 — Studio:** Là người vận hành, tôi muốn chỉnh style, colors, text, hành vi và raw settings với live preview để kiểm tra và debug channel.
 
+**US-8 — Preview launcher:** Là người vận hành, tôi muốn xem trước nút mở chat với đúng màu, icon, label, vị trí và trạng thái ẩn trước khi lưu.
+
 ### Phạm vi
 
 - Trong: `ChannelSettings`, `meta`, Message Hub Studio, preview, `identify`, `sender`, "đang soạn", ngữ cảnh trang.
@@ -64,7 +66,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-7** — `MessageHub.identify(profile)` chỉ nhận khóa hợp lệ, giá trị chuỗi/số, tối đa 20 trường; **không xác minh** — không dùng để cấp quyền.
 
-**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận.
+**BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, launcher preview, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận. Launcher preview mô phỏng button 56 px/pill của loader với brand color, custom icon, localized label, desktop offset và trạng thái `hidden`.
 
 ### Tiêu chí nghiệm thu
 
@@ -74,7 +76,7 @@ related_features: [channels, i18n, widget-sdk]
 
 **AC-3** — Trang `public/demo.html` áp preview ngay khi bấm Apply và không tạo visitor (đã kiểm Chrome + DB 2026-10-07).
 
-**AC-4** — Message Hub Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; Save gửi settings đã chỉnh qua management API.
+**AC-4** — Message Hub Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; chế độ Launcher cập nhật theo draft settings; Save gửi settings đã chỉnh qua management API.
 
 ---
 
@@ -90,7 +92,7 @@ related_features: [channels, i18n, widget-sdk]
 | Launcher desktop/mobile + khung chat full-screen | `src/loader/loader.js`, `src/loader/build.ts` |
 | Form trước khi chat | `src/widget/components/PreChat.tsx` |
 | `meta` | `src/app/api/v1/meta/route.ts` |
-| Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx` |
+| Message Hub Studio | `src/app/page.tsx`, `src/studio/ChannelStudio.tsx`, `src/studio/Inbox.tsx` |
 | Trang thử preview | `public/demo.html` |
 
 Route `/` của Message Hub Studio dùng dynamic rendering để HTML luôn mang cache policy `no-store`; chỉ static assets có content hash mới được cache dài hạn. Điều này tránh deploy mới tiếp tục phục vụ HTML tham chiếu bundle Studio cũ.

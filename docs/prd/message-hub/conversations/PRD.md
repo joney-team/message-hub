@@ -6,10 +6,10 @@ category: Core
 status: stable
 version: 1.0.0
 owner: maintainers
-last_verified: 2026-10-07
-modules: [src/server/services/sessions.ts, src/server/services/messages.ts, src/server/services/visitors.ts, src/server/realtime/hub.ts, src/app/api/widget, src/app/api/v1/visitors, src/widget]
+last_verified: 2026-10-08
+modules: [src/server/services/sessions.ts, src/server/services/messages.ts, src/server/services/visitors.ts, src/server/services/conversations.ts, src/server/realtime/hub.ts, src/app/api/widget, src/app/api/v1/visitors, src/app/api/v1/conversations, src/widget, src/studio/Inbox.tsx]
 entities: [visitors, messages]
-routes: [POST /api/widget/sessions, GET/PATCH/DELETE /api/widget/me, GET/POST /api/widget/messages, GET /api/widget/stream, GET /api/v1/visitors/[id], GET/POST/DELETE /api/v1/visitors/[id]/messages, POST /api/v1/visitors/[id]/typing]
+routes: [POST /api/widget/sessions, GET/PATCH/DELETE /api/widget/me, GET/POST /api/widget/messages, GET /api/widget/stream, GET /api/v1/conversations, GET /api/v1/visitors/[id], GET/POST/DELETE /api/v1/visitors/[id]/messages, POST /api/v1/visitors/[id]/typing]
 related_plans: []
 related_features: [channels, webhooks, files, i18n, customization]
 ---
@@ -45,13 +45,15 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **US-7 — Biết trang visitor đang xem:** Là nhân viên, tôi muốn mỗi tin kèm URL/tiêu đề trang để hiểu ngữ cảnh.
 
+**US-8 — Inbox hợp nhất:** Là người vận hành, tôi muốn xem tin nhắn từ mọi channel trên một màn hình, lọc theo channel, mở lịch sử và trả lời với tên nhân viên đang chăm sóc.
+
 ### Phạm vi
 
 #### Trong phạm vi
-- Session, hồ sơ visitor, gửi/nhận tin, lịch sử phân trang, SSE, typing, rate limit, dọn theo retention.
+- Session, hồ sơ visitor, gửi/nhận tin, lịch sử phân trang, SSE, typing, rate limit, dọn theo retention, management inbox hợp nhất trong Studio.
 
 #### Ngoài phạm vi
-- Trạng thái đã đọc, nhiều agent, giờ làm việc/offline, markdown, tìm kiếm.
+- Trạng thái đã đọc, phân công/đồng bộ trạng thái nhiều agent, giờ làm việc/offline, markdown.
 
 ### Quy tắc nghiệp vụ
 
@@ -73,6 +75,10 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **BR-9** — Các tin liên tiếp cùng hướng, cùng sender và cùng ngày được vẽ thành một nhóm: tên sender ở tin đầu, avatar ở tin cuối, timestamp ở cuối nhóm và góc bubble nối theo vị trí đầu/giữa/cuối.
 
+**BR-10** — `GET /api/v1/conversations` chỉ liệt kê visitor thuộc channel của API key hiện tại và đã có ít nhất một tin; sắp theo `seq` mới nhất, có filter `channelId`, offset pagination và kèm `channel`, `visitor`, `latestMessage`.
+
+**BR-11** — Inbox Studio poll danh sách hội thoại và thread đang mở; reply dùng `POST /api/v1/visitors/[id]/messages` với `sender.name`, nên tin vẫn được lưu cùng outbox rồi phát SSE như mọi API reply khác.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Visitor A không đọc được tin của visitor B dù cùng channel; thiếu/sai token → 401 (`tests/widget-api.test.ts`).
@@ -83,6 +89,8 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **AC-4** — Luồng bàn phím hoàn chỉnh (chào → form → gửi → thoát hội thoại), đổi locale lúc chạy, vừa 320 px (kiểm Chrome 2026-10-07).
 
+**AC-5** — API key chỉ thấy conversation của channel mình sở hữu; filter channel khác owner trả 404; kết quả mới nhất đứng trước (`tests/api-v1.test.ts`).
+
 ---
 
 ## B. Tham chiếu kỹ thuật
@@ -92,12 +100,13 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 | Vai trò | File |
 |---|---|
 | Schema | `src/server/db/schema.ts` (`visitors`, `messages`) |
-| Services | `services/sessions.ts`, `services/messages.ts`, `services/visitors.ts` |
+| Services | `services/sessions.ts`, `services/messages.ts`, `services/visitors.ts`, `services/conversations.ts` |
 | Realtime | `src/server/realtime/hub.ts`, `src/app/api/widget/stream/route.ts` |
 | Widget routes | `src/app/api/widget/{sessions,me,messages,stream}` |
-| Admin routes | `src/app/api/v1/visitors/**` |
+| Admin routes | `src/app/api/v1/conversations/route.ts`, `src/app/api/v1/visitors/**` |
 | Rate limit | `src/server/http/rate-limit.ts` |
 | UI | `src/widget/ChatApp.tsx`, `components/`, `useSession.ts`, `useChat.ts`, `reducer.ts`, `stream.ts`, `sse.ts`, `linkify.ts` |
+| Management Inbox | `src/studio/Inbox.tsx`, `src/studio/ChannelStudio.tsx` |
 
 `ChatScreen.tsx` xác định ranh giới nhóm theo direction, sender name và ngày; `MessageBubble.tsx` dùng ranh giới đó để đặt header, avatar, timestamp và kiểu bo góc.
 
@@ -118,6 +127,7 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 | `GET /api/widget/messages?before=&limit≤50` | 👤 | Lịch sử `{data, hasMore}` |
 | `POST /api/widget/messages` | 👤 | `{text, attachments:[{fileId}], clientMessageId, context}` |
 | `GET /api/widget/stream` | 👤 | SSE: `event: message` (id = seq), `event: typing`, `event: resync` |
+| `GET /api/v1/conversations?channelId=&limit=&offset=` | 🔑 | Inbox hợp nhất, mới nhắn trước; mỗi item có `visitor`, channel rút gọn và `latestMessage` |
 | `GET /api/v1/visitors/[id]` | 🔑 | Chi tiết visitor |
 | `GET/POST/DELETE /api/v1/visitors/[id]/messages` | 🔑 | Lịch sử / trả lời `{text, attachments, sender}` / xóa hội thoại |
 | `POST /api/v1/visitors/[id]/typing` | 🔑 | `{sender?}` → phát "đang soạn" |
@@ -134,6 +144,7 @@ sequenceDiagram
   V->>H: GET /messages, rồi GET /stream (Last-Event-ID)
   V->>H: POST /messages
   H->>J: webhook message.created (outbox)
+  J->>H: GET /api/v1/conversations
   J->>H: POST /api/v1/visitors/:id/typing
   J->>H: POST /api/v1/visitors/:id/messages
   H-->>V: SSE message
