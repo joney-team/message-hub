@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { resetConfigForTests } from '@/server/config';
-import { getDb, getSqlite } from '@/server/db/client';
+import { getDb, getSqlite, openDatabase } from '@/server/db/client';
 import { channels, files, visitors } from '@/server/db/schema';
 import { resetLimitersForTests } from '@/server/http/rate-limit';
 import { hub } from '@/server/realtime/hub';
@@ -148,7 +148,7 @@ describe('normalizeSettings with a bad stored value', () => {
     const s = normalizeSettings(stored, 'ch_broken');
     expect(s.theme).toEqual(DEFAULT_SETTINGS.theme); // the broken section only
     expect(s.launcher).toMatchObject({ position: 'left', hidden: true }); // others kept
-    expect(s.launcher.mobileOffset).toEqual({ x: 16, y: 16 }); // added settings are completed for older rows
+    expect(s.launcher).toMatchObject({ size: 'medium', offset: { x: 20, y: 20 } }); // added settings are completed for older rows
     expect(s.content.brandName).toEqual({ en: 'Acme' });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0][0])).toContain('ch_broken');
@@ -173,5 +173,45 @@ describe('normalizeSettings with a bad stored value', () => {
     const body = await res.json();
     expect(body.settings.theme.color).toBe('#1f2937');
     expect(body.settings.window.width).toBe(500);
+  });
+});
+
+describe('launcher settings migration', () => {
+  it('removes only mobileOffset from legacy channel settings', () => {
+    const { sqlite } = openDatabase(':memory:');
+    try {
+      sqlite.exec('CREATE TABLE channels (settings text NOT NULL)');
+      const legacy = {
+        theme: { color: '#abcdef' },
+        launcher: {
+          color: '#123456',
+          size: 'large',
+          position: 'left',
+          offset: { x: 32, y: 84 },
+          mobileOffset: { x: 16, y: 96 },
+          hidden: true,
+          zIndex: 900,
+        },
+      };
+      sqlite.prepare('INSERT INTO channels (settings) VALUES (?)').run(JSON.stringify(legacy));
+      sqlite.prepare('INSERT INTO channels (settings) VALUES (?)').run('{malformed');
+      sqlite.exec(fs.readFileSync(path.join(process.cwd(), 'drizzle/0001_remove_launcher_mobile_offset.sql'), 'utf8'));
+
+      const rows = sqlite.prepare('SELECT settings FROM channels').all() as Array<{ settings: string }>;
+      expect(JSON.parse(rows[0].settings)).toEqual({
+        theme: legacy.theme,
+        launcher: {
+          color: '#123456',
+          size: 'large',
+          position: 'left',
+          offset: { x: 32, y: 84 },
+          hidden: true,
+          zIndex: 900,
+        },
+      });
+      expect(rows[1].settings).toBe('{malformed');
+    } finally {
+      sqlite.close();
+    }
   });
 });

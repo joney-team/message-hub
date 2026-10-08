@@ -4,9 +4,9 @@ title: Widget loader & nhúng
 domain: message-hub
 category: Core
 status: stable
-version: 1.0.0
+version: 1.0.1
 owner: maintainers
-last_verified: 2026-10-07
+last_verified: 2026-10-08
 modules: [src/loader, src/app/embed, src/app/w, src/proxy.ts, src/widget/useHost.ts, src/widget/protocol.ts]
 entities: [channels]
 routes: [GET /embed/[file], GET /w/[channelId]]
@@ -40,6 +40,8 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 **US-4 — Analytics và badge riêng:** Là lập trình viên, tôi muốn nhận sự kiện `ready | open | close | message | unread`.
 
 **US-5 — Chặn site lạ:** Là chủ workspace, tôi muốn trình duyệt tự chặn nhúng iframe ở domain không nằm trong `allowedOrigins`.
+
+**US-6 — Layout responsive của website:** Là lập trình viên, tôi muốn thay đổi vị trí, trạng thái hiện/ẩn và z-index của launcher tại runtime mà không cần tải lại widget.
 
 ### Phạm vi
 
@@ -75,6 +77,8 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 **AC-4** — Tin nhắn `postMessage` từ origin/window khác bị bỏ qua (`tests/loader.test.ts`).
 
+**AC-5** — Launcher dùng cùng một `offset` ở mọi viewport; website có thể đổi vị trí, visibility và z-index tại runtime, còn chat trên mobile vẫn full viewport (`tests/loader.test.ts`).
+
 ---
 
 ## B. Tham chiếu kỹ thuật
@@ -95,7 +99,7 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 Production dùng `https://message-hub.example.com` cho loader, iframe và API; file đính kèm dùng `https://files.message-hub.example.com`. Host của loader vẫn suy ra từ `src` của script, không hardcode trong code; development giữ localhost.
 
-`init({ locale?, identify?, open? })` · `open()` · `close()` · `toggle()` · `setLocale(code|null)` · `identify(profile)` · `on(event, fn)` → hàm hủy · `off` · `destroy()`. Thuộc tính thẻ script: `data-locale`, `data-auto-init="false"`.
+`init({ locale?, identify?, open? })` · `open()` · `close()` · `toggle()` · `setLauncherPosition({position?, x?, y?})` · `setLauncherVisible(boolean)` · `setLauncherZIndex(number)` · `setLocale(code|null)` · `identify(profile)` · `on(event, fn)` → hàm hủy · `off` · `destroy()`. Các override launcher chỉ tồn tại trong instance hiện tại và reset khi gọi `init()` lại. Thuộc tính thẻ script: `data-locale`, `data-auto-init="false"`.
 
 ### Giao thức postMessage
 

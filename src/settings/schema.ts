@@ -37,9 +37,9 @@ export const channelSettingsSchema = z
     launcher: z
       .object({
         color: hexColor.optional(),
+        size: z.enum(['small', 'medium', 'large', 'xlarge']).default('medium'),
         position: z.enum(['left', 'right']).default('right'),
         offset: z.object({ x: px(400), y: px(400) }).strict().default({ x: 20, y: 20 }),
-        mobileOffset: z.object({ x: px(400), y: px(400) }).strict().default({ x: 16, y: 16 }),
         icon: httpUrl.optional(),
         label: localizedText.optional(),
         hidden: z.boolean().default(false),

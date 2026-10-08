@@ -10,7 +10,19 @@ const CHANNEL = 'ch_' + 'a'.repeat(22);
 
 const config = (settings: unknown = {}) => loaderConfig({ id: CHANNEL, settings });
 
-type Api = { open(): void; close(): void; toggle(): void; setLocale(l: string | null): void; identify(p: unknown): void; on(n: string, f: (p?: unknown) => void): () => void; destroy(): void; init(o?: object): void };
+type Api = {
+  open(): void;
+  close(): void;
+  toggle(): void;
+  setLocale(l: string | null): void;
+  setLauncherPosition(position: { position?: 'left' | 'right'; x?: number; y?: number }): void;
+  setLauncherVisible(visible: boolean): void;
+  setLauncherZIndex(zIndex: number): void;
+  identify(p: unknown): void;
+  on(n: string, f: (p?: unknown) => void): () => void;
+  destroy(): void;
+  init(o?: object): void;
+};
 const hubApi = () => (window as unknown as { MessageHub: Api }).MessageHub;
 
 /** Runs the real minified loader the way the browser would run `<script src=HUB/embed/ch.js>`. */
@@ -195,12 +207,24 @@ describe('launcher settings', () => {
     expect(b.style.color).toMatch(/255, 255, 255|#ffffff/);
   });
 
-  it('uses the mobile launcher offset and opens the chat across the full viewport', () => {
-    setViewportWidth(768);
-    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+  it('scales the launcher and keeps the desktop chat above it', () => {
+    load(config({ launcher: { size: 'xlarge', offset: { x: 20, y: 30 } } }));
     const b = button();
-    expect(b.style.right).toBe('12px');
-    expect(b.style.bottom).toBe('18px');
+    expect(b.style.width).toBe('72px');
+    expect(b.style.height).toBe('72px');
+    expect(b.style.minWidth).toBe('72px');
+    expect(b.style.borderRadius).toBe('36px');
+    expect(b.querySelector('svg')?.getAttribute('width')).toBe('34');
+    b.click();
+    expect(frame()!.parentElement?.style.bottom).toBe('114px');
+  });
+
+  it('uses the same launcher offset on mobile and opens the chat across the full viewport', () => {
+    setViewportWidth(768);
+    load(config({ launcher: { offset: { x: 30, y: 40 } } }));
+    const b = button();
+    expect(b.style.right).toBe('30px');
+    expect(b.style.bottom).toBe('40px');
     b.click();
     const box = frame()!.parentElement as HTMLElement;
     expect(b.style.display).toBe('none');
@@ -214,16 +238,16 @@ describe('launcher settings', () => {
     expect(box.style.boxShadow).toBe('none');
   });
 
-  it('updates launcher offsets and chat layout when the viewport crosses the mobile breakpoint', () => {
-    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+  it('keeps the launcher offset while updating chat layout across the mobile breakpoint', () => {
+    load(config({ launcher: { offset: { x: 30, y: 40 } } }));
     const b = button();
     expect(b.style.right).toBe('30px');
     expect(b.style.bottom).toBe('40px');
 
     setViewportWidth(600);
     window.dispatchEvent(new Event('resize'));
-    expect(b.style.right).toBe('12px');
-    expect(b.style.bottom).toBe('18px');
+    expect(b.style.right).toBe('30px');
+    expect(b.style.bottom).toBe('40px');
 
     b.click();
     const box = frame()!.parentElement as HTMLElement;
@@ -242,7 +266,7 @@ describe('launcher settings', () => {
 
   it('keeps desktop layout when only the viewport height is short', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 500 });
-    load(config({ launcher: { offset: { x: 30, y: 40 }, mobileOffset: { x: 12, y: 18 } } }));
+    load(config({ launcher: { offset: { x: 30, y: 40 } } }));
     expect(button().style.right).toBe('30px');
     expect(button().style.bottom).toBe('40px');
     button().click();
@@ -256,6 +280,70 @@ describe('launcher settings', () => {
     expect(button().style.display).toBe('none');
     hubApi().open();
     expect(frame()).not.toBeNull();
+  });
+
+  it('changes launcher and desktop chat position at runtime', () => {
+    load(config({ launcher: { offset: { x: 20, y: 20 } } }));
+    const b = button();
+    hubApi().setLauncherPosition({ position: 'left', x: 32, y: 96 });
+    expect(b.style.left).toBe('32px');
+    expect(b.style.right).toBe('auto');
+    expect(b.style.bottom).toBe('96px');
+
+    hubApi().open();
+    const box = frame()!.parentElement as HTMLElement;
+    expect(box.style.left).toBe('32px');
+    expect(box.style.right).toBe('auto');
+    expect(box.style.bottom).toBe('164px');
+
+    hubApi().setLauncherPosition({ position: 'right', x: 12, y: 24 });
+    expect(b.style.left).toBe('auto');
+    expect(b.style.right).toBe('12px');
+    expect(box.style.left).toBe('auto');
+    expect(box.style.right).toBe('12px');
+    expect(box.style.bottom).toBe('92px');
+  });
+
+  it('changes launcher visibility and z-index at runtime without closing chat', () => {
+    load();
+    hubApi().open();
+    const box = frame()!.parentElement as HTMLElement;
+    hubApi().setLauncherVisible(false);
+    expect(button().style.display).toBe('none');
+    expect(box.style.visibility).toBe('visible');
+    expect(box.style.bottom).toBe('20px');
+
+    hubApi().setLauncherZIndex(1200);
+    expect(button().style.zIndex).toBe('1200');
+    expect(box.style.zIndex).toBe('1201');
+
+    hubApi().setLauncherVisible(true);
+    expect(button().style.display).toBe('flex');
+    expect(box.style.bottom).toBe('88px');
+  });
+
+  it('rejects invalid launcher overrides atomically and init resets valid overrides', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    load(config({ launcher: { position: 'right', offset: { x: 20, y: 20 }, zIndex: 777 } }));
+    hubApi().setLauncherPosition({ position: 'left', x: -1, y: 90 });
+    hubApi().setLauncherVisible('false' as never);
+    hubApi().setLauncherZIndex(1.5);
+    expect(button().style.right).toBe('20px');
+    expect(button().style.left).toBe('auto');
+    expect(button().style.bottom).toBe('20px');
+    expect(button().style.display).toBe('flex');
+    expect(button().style.zIndex).toBe('777');
+    expect(warn).toHaveBeenCalledTimes(3);
+
+    hubApi().setLauncherPosition({ position: 'left', x: 40, y: 80 });
+    hubApi().setLauncherVisible(false);
+    hubApi().setLauncherZIndex(900);
+    hubApi().init({});
+    expect(button().style.right).toBe('20px');
+    expect(button().style.left).toBe('auto');
+    expect(button().style.bottom).toBe('20px');
+    expect(button().style.display).toBe('flex');
+    expect(button().style.zIndex).toBe('777');
   });
 
   it('localizes the label and aria-label, and setLocale switches them at runtime', () => {
@@ -366,10 +454,13 @@ describe('embed config', () => {
     expect(c.launcher).toMatchObject({
       color: '#1f2937',
       fg: '#ffffff',
+      size: 'medium',
+      diameter: 56,
+      iconSize: 26,
+      imageSize: 28,
       position: 'right',
       hidden: false,
       offset: { x: 20, y: 20 },
-      mobileOffset: { x: 16, y: 16 },
     });
     expect(c.window).toEqual(DEFAULT_SETTINGS.window);
     expect(c.strings.en.open).toBe('Open chat');

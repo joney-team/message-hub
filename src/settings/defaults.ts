@@ -6,7 +6,7 @@ import type { ChannelSettings } from './schema';
  */
 export const SETTINGS_DEFAULTS: ChannelSettings = {
   theme: { color: '#1f2937', colorScheme: 'auto', radius: 'md' },
-  launcher: { position: 'right', offset: { x: 20, y: 20 }, mobileOffset: { x: 16, y: 16 }, hidden: false, zIndex: 2147483000 },
+  launcher: { size: 'medium', position: 'right', offset: { x: 20, y: 20 }, hidden: false, zIndex: 2147483000 },
   window: { width: 380, height: 640 },
   locales: ['en', 'vi'],
   defaultLocale: 'en',
@@ -58,9 +58,9 @@ export function completeSettings(input: unknown): ChannelSettings {
   s.theme.fontFamily = typeof s.theme.fontFamily === 'string' && FONT.test(s.theme.fontFamily) ? s.theme.fontFamily : undefined;
   s.theme.logo = httpUrl(s.theme.logo);
   s.launcher.color = typeof s.launcher.color === 'string' && HEX.test(s.launcher.color) ? s.launcher.color : undefined;
+  s.launcher.size = oneOf(s.launcher.size, ['small', 'medium', 'large', 'xlarge'], 'medium');
   s.launcher.position = oneOf(s.launcher.position, ['left', 'right'], 'right');
   s.launcher.offset = launcherOffset(s.launcher.offset, SETTINGS_DEFAULTS.launcher.offset);
-  s.launcher.mobileOffset = launcherOffset(s.launcher.mobileOffset, SETTINGS_DEFAULTS.launcher.mobileOffset);
   s.preChat.mode = oneOf(s.preChat.mode, ['off', 'optional', 'required'], 'off');
   if (!Array.isArray(s.preChat.fields)) s.preChat.fields = [];
   if (!Array.isArray(s.locales) || s.locales.length === 0) s.locales = SETTINGS_DEFAULTS.locales;

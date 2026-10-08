@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { ALL_CATALOGS } from '@/i18n/catalog.server';
 import { readableOn } from '@/widget/theme';
 import { normalizeSettings } from '@/settings';
+import { LAUNCHER_SIZE_STYLES } from '@/settings/launcher';
 import { LOADER_FUNCTION } from './loader.min';
 
 const RADIUS = { none: '0px', sm: '6px', md: '12px', lg: '20px' } as const;
@@ -12,6 +13,7 @@ type ChannelLike = { id: string; settings: unknown };
 export function loaderConfig(channel: ChannelLike) {
   const s = normalizeSettings(channel.settings, channel.id);
   const launcherColor = s.launcher.color ?? s.theme.color;
+  const launcherSize = LAUNCHER_SIZE_STYLES[s.launcher.size];
   const strings: Record<string, { open: string; close: string }> = {};
   for (const locale of s.locales) {
     const base = ALL_CATALOGS[locale] ?? ALL_CATALOGS.en;
@@ -24,9 +26,15 @@ export function loaderConfig(channel: ChannelLike) {
     launcher: {
       color: launcherColor,
       fg: readableOn(launcherColor),
+      size: s.launcher.size,
+      diameter: launcherSize.diameter,
+      iconSize: launcherSize.icon,
+      imageSize: launcherSize.image,
+      fontSize: launcherSize.font,
+      paddingStart: launcherSize.paddingStart,
+      paddingEnd: launcherSize.paddingEnd,
       position: s.launcher.position,
       offset: s.launcher.offset,
-      mobileOffset: s.launcher.mobileOffset,
       icon: s.launcher.icon ?? null,
       label: s.launcher.label ?? null,
       hidden: s.launcher.hidden,

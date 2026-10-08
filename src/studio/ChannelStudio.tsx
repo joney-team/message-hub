@@ -29,6 +29,7 @@ import Image from 'next/image';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { localize } from '@/i18n';
 import { completeSettings } from '@/settings/defaults';
+import { LAUNCHER_SIZE_STYLES } from '@/settings/launcher';
 import type { ChannelSettings, LocalizedText } from '@/settings/schema';
 import { readableOn } from '@/widget/theme';
 import { Inbox } from './Inbox';
@@ -651,12 +652,13 @@ export function ChannelStudio() {
 function LauncherPreview({ settings, locale }: { settings: ChannelSettings; locale: string }) {
   const preview = completeSettings(settings);
   const launcherColor = preview.launcher.color ?? preview.theme.color;
+  const launcherSize = LAUNCHER_SIZE_STYLES[preview.launcher.size];
   const label = localize(preview.launcher.label, locale, preview.defaultLocale);
   const side = preview.launcher.position;
   const iconUrl = preview.launcher.icon ?? null;
   const position: CSSProperties = {
-    bottom: `min(${preview.launcher.offset.y}px, calc(100% - 68px))`,
-    [side]: `min(${preview.launcher.offset.x}px, calc(100% - 68px))`,
+    bottom: `min(${preview.launcher.offset.y}px, calc(100% - ${launcherSize.diameter + 12}px))`,
+    [side]: `min(${preview.launcher.offset.x}px, calc(100% - ${launcherSize.diameter + 12}px))`,
   };
 
   return (
@@ -684,15 +686,19 @@ function LauncherPreview({ settings, locale }: { settings: ChannelSettings; loca
             color: readableOn(launcherColor),
             background: launcherColor,
             fontFamily: preview.theme.fontFamily,
-            width: label ? 'auto' : 56,
-            padding: label ? '0 20px 0 16px' : 0,
+            width: label ? 'auto' : launcherSize.diameter,
+            height: launcherSize.diameter,
+            minWidth: launcherSize.diameter,
+            borderRadius: launcherSize.diameter / 2,
+            fontSize: launcherSize.font,
+            padding: label ? `0 ${launcherSize.paddingEnd}px 0 ${launcherSize.paddingStart}px` : 0,
           }}
         >
           {iconUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- preview of an operator-provided launcher asset
-            <img src={iconUrl} alt="" referrerPolicy="no-referrer" />
+            <img src={iconUrl} alt="" referrerPolicy="no-referrer" style={{ width: launcherSize.image, height: launcherSize.image }} />
           ) : (
-            <MessageCircle size={26} />
+            <MessageCircle size={launcherSize.icon} />
           )}
           {label && <span>{label}</span>}
         </button>
@@ -863,6 +869,69 @@ function GeneralTab({ draft, update }: { draft: ChannelDto; update: (change: (ch
       <Section title="Embed" description="Use this script URL on the website that should show the widget.">
         <CopyValue value={`${typeof window === 'undefined' ? '' : window.location.origin}${draft.embedPath}`} />
       </Section>
+      <Section title="Runtime API" description="Control the embedded widget from the host website through window.MessageHub.">
+        <RuntimeApiReference />
+      </Section>
+    </div>
+  );
+}
+
+function RuntimeApiReference() {
+  return (
+    <div className="studio-runtime-api">
+      <p className="studio-runtime-note">
+        Launcher overrides apply immediately for the current page. Calling <code>init()</code> again resets them to the saved channel settings.
+      </p>
+      <dl>
+        <div>
+          <dt><code>setLauncherPosition({'{ position?, x?, y? }'})</code></dt>
+          <dd>Move the launcher and desktop chat window. Position is left or right; x and y are integer pixel offsets from 0 to 400.</dd>
+        </div>
+        <div>
+          <dt><code>setLauncherVisible(visible)</code></dt>
+          <dd>Show or hide the launcher button. Hiding it does not close an open chat window.</dd>
+        </div>
+        <div>
+          <dt><code>setLauncherZIndex(zIndex)</code></dt>
+          <dd>Set the launcher stacking level to an integer from 0 to 2147483647. The chat window is placed one level above it.</dd>
+        </div>
+        <div>
+          <dt><code>open() · close() · toggle()</code></dt>
+          <dd>Open, close or toggle the chat window.</dd>
+        </div>
+        <div>
+          <dt><code>setLocale(code | null)</code></dt>
+          <dd>Switch to an enabled locale, or pass null to resume automatic locale detection.</dd>
+        </div>
+        <div>
+          <dt><code>identify(profile)</code></dt>
+          <dd>Merge visitor profile fields such as name, email or customerId into the current session.</dd>
+        </div>
+        <div>
+          <dt><code>on(event, handler) · off(event, handler)</code></dt>
+          <dd>Subscribe to ready, open, close, message or unread events. on() returns an unsubscribe function.</dd>
+        </div>
+        <div>
+          <dt><code>init(options?) · destroy()</code></dt>
+          <dd>Create or remove the widget. init supports locale, identify and open options.</dd>
+        </div>
+      </dl>
+      <div className="studio-runtime-example">
+        <strong>Responsive launcher example</strong>
+        <pre><code>{`const syncLauncher = () => {
+  const mobile = matchMedia('(max-width: 768px)').matches;
+  MessageHub.setLauncherPosition({
+    position: 'right',
+    x: 16,
+    y: mobile ? 88 : 20,
+  });
+};
+
+syncLauncher();
+addEventListener('resize', syncLauncher);
+MessageHub.setLauncherZIndex(1000);
+MessageHub.setLauncherVisible(true);`}</code></pre>
+      </div>
     </div>
   );
 }
@@ -1043,6 +1112,18 @@ function BehaviorTab({
               ]}
             />
           </Field>
+          <Field label="Size">
+            <Select
+              value={settings.launcher.size}
+              onChange={(value) => update((next) => (next.launcher.size = value as ChannelSettings['launcher']['size']))}
+              options={[
+                ['small', 'Small'],
+                ['medium', 'Medium'],
+                ['large', 'Large'],
+                ['xlarge', 'Extra large'],
+              ]}
+            />
+          </Field>
           <Field label="Launcher color" hint="Leave empty to use the brand color">
             <div className="studio-color-input">
               <input
@@ -1070,10 +1151,8 @@ function BehaviorTab({
               }
             />
           </Field>
-          <NumberField label="Desktop horizontal offset" min={0} max={400} value={settings.launcher.offset.x} onChange={(value) => update((next) => (next.launcher.offset.x = value))} suffix="px" />
-          <NumberField label="Desktop bottom offset" min={0} max={400} value={settings.launcher.offset.y} onChange={(value) => update((next) => (next.launcher.offset.y = value))} suffix="px" />
-          <NumberField label="Mobile horizontal offset" min={0} max={400} value={settings.launcher.mobileOffset.x} onChange={(value) => update((next) => (next.launcher.mobileOffset.x = value))} suffix="px" />
-          <NumberField label="Mobile bottom offset" min={0} max={400} value={settings.launcher.mobileOffset.y} onChange={(value) => update((next) => (next.launcher.mobileOffset.y = value))} suffix="px" />
+          <NumberField label="Horizontal offset" min={0} max={400} value={settings.launcher.offset.x} onChange={(value) => update((next) => (next.launcher.offset.x = value))} suffix="px" />
+          <NumberField label="Bottom offset" min={0} max={400} value={settings.launcher.offset.y} onChange={(value) => update((next) => (next.launcher.offset.y = value))} suffix="px" />
           <NumberField label="Z-index" min={0} max={2147483647} value={settings.launcher.zIndex} onChange={(value) => update((next) => (next.launcher.zIndex = value))} />
           <Toggle label="Hide default launcher" checked={settings.launcher.hidden} onChange={(value) => update((next) => (next.launcher.hidden = value))} />
         </div>

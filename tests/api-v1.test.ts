@@ -147,7 +147,6 @@ describe('settings', () => {
     expect(s.theme.color).toBe('#1f2937');
     expect(s.launcher.position).toBe('right');
     expect(s.launcher.offset).toEqual({ x: 20, y: 20 });
-    expect(s.launcher.mobileOffset).toEqual({ x: 16, y: 16 });
     expect(s.window.width).toBeGreaterThan(0);
     expect(s.locales).toContain('en');
     expect(s.preChat).toEqual({ mode: 'off', fields: [] });
@@ -187,9 +186,10 @@ describe('settings', () => {
   it('PATCH deep-merges, and null unsets an optional value', async () => {
     const created = await call(channelsRoute.POST, KEY_A, {
       method: 'POST',
-      body: { name: 'x', settings: { theme: { color: '#112233', logo: 'https://x.test/l.png' }, launcher: { color: '#abcdef', hidden: true } } },
+      body: { name: 'x', settings: { theme: { color: '#112233', logo: 'https://x.test/l.png' }, launcher: { color: '#abcdef', size: 'large', hidden: true } } },
     });
     expect(created.body.settings.launcher.color).toBe('#abcdef');
+    expect(created.body.settings.launcher.size).toBe('large');
     const params = { id: created.body.id };
     const r = await call(channelRoute.PATCH, KEY_A, {
       method: 'PATCH',
@@ -211,6 +211,8 @@ describe('settings', () => {
     ['defaultLocale outside locales', { locales: ['en'], defaultLocale: 'vi' }],
     ['bad color', { theme: { color: 'red; background:url(x)' } }],
     ['bad launcher color', { launcher: { color: 'red; background:url(x)' } }],
+    ['bad launcher size', { launcher: { size: 'huge' } }],
+    ['legacy mobile launcher offset', { launcher: { mobileOffset: { x: 16, y: 80 } } }],
     ['javascript: logo', { theme: { logo: 'javascript:alert(1)' } }],
     ['unknown field', { customCss: 'body{}' }],
     ['duplicate pre-chat key', { preChat: { mode: 'optional', fields: [{ key: 'a', type: 'text' }, { key: 'a', type: 'email' }] } }],

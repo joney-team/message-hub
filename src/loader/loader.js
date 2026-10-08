@@ -115,15 +115,21 @@ function strings() {
 function isMobile() {
   return window.innerWidth <= MOBILE_MAX_WIDTH;
 }
+function validOffset(value) {
+  return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0 && value <= 400;
+}
+function validZIndex(value) {
+  return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0 && value <= 2147483647;
+}
 
 function layout() {
   var s = state;
   var mobile = isMobile();
-  var L = c.launcher;
-  var launcherOffset = mobile ? L.mobileOffset : L.offset;
+  var L = s.launcher;
+  var launcherOffset = L.offset;
   var side = L.position === 'left' ? 'left' : 'right';
   var other = side === 'left' ? 'right' : 'left';
-  var size = 56;
+  var size = c.launcher.diameter;
   css(s.button, { position: 'fixed', bottom: launcherOffset.y + 'px', zIndex: String(L.zIndex), display: L.hidden || (mobile && s.open) ? 'none' : 'flex' });
   s.button.style[side] = launcherOffset.x + 'px';
   s.button.style[other] = 'auto';
@@ -158,17 +164,17 @@ function layout() {
       boxShadow: 'none',
     });
   } else {
-    var bottom = L.hidden ? L.offset.y : L.offset.y + size + 12;
+    var bottom = L.hidden ? launcherOffset.y : launcherOffset.y + size + 12;
     css(box, {
       top: 'auto',
       bottom: bottom + 'px',
       width: c.window.width + 'px',
       height: c.window.height + 'px',
-      maxWidth: 'calc(100vw - ' + L.offset.x * 2 + 'px)',
+      maxWidth: 'calc(100vw - ' + launcherOffset.x * 2 + 'px)',
       maxHeight: 'calc(100vh - ' + (bottom + 12) + 'px)',
       borderRadius: c.theme.radius,
     });
-    box.style[side] = L.offset.x + 'px';
+    box.style[side] = launcherOffset.x + 'px';
     box.style[other] = 'auto';
   }
 }
@@ -183,7 +189,10 @@ function labelText() {
   state.labelEl.textContent = label;
   var wide = !!label && !open;
   css(state.labelEl, { display: wide ? 'block' : 'none' });
-  css(state.button, { width: wide ? 'auto' : '56px', padding: wide ? '0 20px 0 16px' : '0' });
+  css(state.button, {
+    width: wide ? 'auto' : c.launcher.diameter + 'px',
+    padding: wide ? '0 ' + c.launcher.paddingEnd + 'px 0 ' + c.launcher.paddingStart + 'px' : '0',
+  });
   state.badgeText.textContent = state.unread > 99 ? '99+' : String(state.unread);
 }
 
@@ -191,8 +200,8 @@ function icon(kind) {
   var NSVG = 'http://www.w3.org/2000/svg';
   var svg = document.createElementNS(NSVG, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('width', '26');
-  svg.setAttribute('height', '26');
+  svg.setAttribute('width', String(c.launcher.iconSize));
+  svg.setAttribute('height', String(c.launcher.iconSize));
   svg.setAttribute('fill', 'none');
   svg.setAttribute('stroke', 'currentColor');
   svg.setAttribute('stroke-width', '2');
@@ -210,7 +219,7 @@ function paintIcon() {
   while (slot.firstChild) slot.removeChild(slot.firstChild);
   if (state.open) slot.appendChild(icon('close'));
   else if (c.launcher.icon) {
-    var img = el('img', { width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px' }, { alt: '', src: c.launcher.icon, referrerpolicy: 'no-referrer' });
+    var img = el('img', { width: c.launcher.imageSize + 'px', height: c.launcher.imageSize + 'px', objectFit: 'contain', borderRadius: '4px' }, { alt: '', src: c.launcher.icon, referrerpolicy: 'no-referrer' });
     slot.appendChild(img);
   } else slot.appendChild(icon('chat'));
 }
@@ -313,10 +322,11 @@ var api = {
       var host = el('div', { all: 'initial' }, { id: 'message-hub-root' });
       var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
       var btnStyles = {
-        width: '56px', height: '56px', minWidth: '56px', borderRadius: '28px', border: '0', padding: '0', margin: '0',
+        width: c.launcher.diameter + 'px', height: c.launcher.diameter + 'px', minWidth: c.launcher.diameter + 'px',
+        borderRadius: c.launcher.diameter / 2 + 'px', border: '0', padding: '0', margin: '0',
         cursor: 'pointer', alignItems: 'center', justifyContent: 'center', gap: '8px',
         background: c.launcher.color, color: c.launcher.fg, boxShadow: '0 6px 20px rgba(0,0,0,.28)',
-        font: '600 14px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', outline: 'none',
+        font: '600 ' + c.launcher.fontSize + 'px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', outline: 'none',
       };
       var button = el('button', btnStyles, { type: 'button' });
       var iconSlot = el('span', { display: 'flex', alignItems: 'center', justifyContent: 'center' });
@@ -340,6 +350,12 @@ var api = {
         frame: null, frameBox: null, frameTimer: 0, open: false, ready: false, unread: 0,
         locale: options.locale ? String(options.locale) : (script && script.getAttribute('data-locale')) || null,
         identity: plainProfile(options.identify),
+        launcher: {
+          position: c.launcher.position,
+          offset: { x: c.launcher.offset.x, y: c.launcher.offset.y },
+          hidden: c.launcher.hidden,
+          zIndex: c.launcher.zIndex,
+        },
         onResize: function () { layout(); },
         focusVisible: false,
       };
@@ -404,6 +420,33 @@ var api = {
     state.locale = code ? String(code) : null;
     labelText();
     send({ type: 'mh:locale', locale: state.locale });
+  },
+  setLauncherPosition: function (position) {
+    if (!state) return;
+    if (!position || typeof position !== 'object' || Array.isArray(position)) return warn('setLauncherPosition() expects { position?, x?, y? }');
+    var hasPosition = Object.prototype.hasOwnProperty.call(position, 'position');
+    var hasX = Object.prototype.hasOwnProperty.call(position, 'x');
+    var hasY = Object.prototype.hasOwnProperty.call(position, 'y');
+    if (!hasPosition && !hasX && !hasY) return warn('setLauncherPosition() expects at least one of position, x or y');
+    if (hasPosition && position.position !== 'left' && position.position !== 'right') return warn('setLauncherPosition().position must be "left" or "right"');
+    if (hasX && !validOffset(position.x)) return warn('setLauncherPosition().x must be an integer from 0 to 400');
+    if (hasY && !validOffset(position.y)) return warn('setLauncherPosition().y must be an integer from 0 to 400');
+    if (hasPosition) state.launcher.position = position.position;
+    if (hasX) state.launcher.offset.x = position.x;
+    if (hasY) state.launcher.offset.y = position.y;
+    layout();
+  },
+  setLauncherVisible: function (visible) {
+    if (!state) return;
+    if (typeof visible !== 'boolean') return warn('setLauncherVisible() expects a boolean');
+    state.launcher.hidden = !visible;
+    layout();
+  },
+  setLauncherZIndex: function (zIndex) {
+    if (!state) return;
+    if (!validZIndex(zIndex)) return warn('setLauncherZIndex() expects an integer from 0 to 2147483647');
+    state.launcher.zIndex = zIndex;
+    layout();
   },
   identify: function (profile) {
     if (!state) return;

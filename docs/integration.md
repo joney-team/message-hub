@@ -170,9 +170,14 @@ declare global {
       open(): void;
       close(): void;
       toggle(): void;
+      setLauncherPosition(position: { position?: 'left' | 'right'; x?: number; y?: number }): void;
+      setLauncherVisible(visible: boolean): void;
+      setLauncherZIndex(zIndex: number): void;
       setLocale(code: string | null): void;
       identify(profile: Record<string, string | number>): void;
       on(event: string, fn: (payload?: unknown) => void): () => void;
+      off(event: string, fn: (payload?: unknown) => void): void;
+      init(options?: { locale?: string; identify?: Record<string, string | number>; open?: boolean }): void;
       destroy(): void;
     };
   }
@@ -210,10 +215,15 @@ Component an toàn với render phía server (chỉ chạy trong `useEffect`) v�
 | Hàm | Tác dụng |
 |---|---|
 | `open()`, `close()`, `toggle()` | Mở, đóng khung chat |
+| `setLauncherPosition({ position?, x?, y? })` | Đổi cạnh (`left` hoặc `right`) và offset của launcher ngay lập tức. `x`, `y` là số nguyên `0–400` px. Trên desktop, khung chat đang mở cũng di chuyển theo |
+| `setLauncherVisible(visible)` | Hiện hoặc ẩn launcher. Ẩn launcher không đóng khung chat đang mở |
+| `setLauncherZIndex(zIndex)` | Đặt z-index launcher bằng số nguyên `0–2147483647`; khung chat nằm cao hơn một mức |
 | `setLocale('en')` | Đổi ngôn ngữ ngay lập tức. Truyền `null` để quay về tự nhận |
 | `identify({ name, email, phone })` | Điền sẵn thông tin visitor. Xem ghi chú bên dưới |
-| `on(event, fn)` | Lắng nghe sự kiện; trả về hàm để hủy |
+| `on(event, fn)`, `off(event, fn)` | Lắng nghe hoặc hủy lắng nghe sự kiện; `on()` cũng trả về một hàm để hủy |
 | `init(options)`, `destroy()` | Khởi tạo và gỡ widget |
+
+Ba hàm `setLauncher*` chỉ override launcher của instance hiện tại trên trang, không ghi lại settings của channel. Gọi `init()` lần nữa sẽ trả launcher về `position`, `offset`, `hidden` và `zIndex` đã lưu. Có thể gọi các hàm này bất kỳ lúc nào sau khi loader đã khởi tạo.
 
 Sự kiện của `on()`:
 
@@ -237,6 +247,26 @@ document.querySelector('#help').addEventListener('click', () => MessageHub.open(
 
 // Đếm tin chưa đọc lên icon của bạn
 MessageHub.on('unread', (count) => { badge.textContent = count || ''; });
+```
+
+Ví dụ đặt launcher cao hơn bottom navigation trên mobile:
+
+```js
+const syncLauncher = () => {
+  const mobile = window.matchMedia('(max-width: 768px)').matches;
+  MessageHub.setLauncherPosition({
+    position: 'right',
+    x: 16,
+    y: mobile ? 88 : 20,
+  });
+};
+
+syncLauncher();
+window.addEventListener('resize', syncLauncher);
+
+// Có thể đổi theo layout hoặc trạng thái của website.
+MessageHub.setLauncherVisible(true);
+MessageHub.setLauncherZIndex(1000);
 ```
 
 > **`identify()` không xác minh danh tính.** Dữ liệu đến từ trình duyệt nên người dùng tự sửa được. Dùng nó để hiển thị và điền sẵn, không dùng để cấp quyền hay tin là "khách hàng KH001 thật".
@@ -512,9 +542,9 @@ Quy tắc của `PATCH`:
 | | `fontFamily` | Tên font có sẵn trên máy visitor (không tải webfont) | Font hệ thống |
 | | `logo` | URL ảnh `http(s)` | — |
 | `launcher` | `color` | Mã hex 6 chữ số; bỏ trường hoặc gửi `null` để dùng `theme.color` | Màu thương hiệu |
+| | `size` | `small`, `medium`, `large`, `xlarge` tương ứng 48, 56, 64, 72 px | `medium` |
 | | `position` | `left`, `right` | `right` |
-| | `offset` | Vị trí desktop: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 20, y: 20 }` |
-| | `mobileOffset` | Vị trí mobile: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc | `{ x: 16, y: 16 }` |
+| | `offset` | Vị trí launcher: `{ "x": 0–400, "y": 0–400 }` tính bằng px từ góc đã chọn | `{ x: 20, y: 20 }` |
 | | `icon` | URL ảnh thay cho icon mặc định | — |
 | | `label` | Chữ cạnh icon, theo ngôn ngữ | — |
 | | `hidden` | `true` để ẩn nút, tự gọi `MessageHub.open()` | `false` |
@@ -531,7 +561,7 @@ Quy tắc của `PATCH`:
 | `features` | `attachments` | Cho visitor gửi file | `true` |
 | | `sound` | Âm báo tin mới | `true` |
 
-Trên màn hình hẹp (điện thoại), launcher dùng `mobileOffset`; khi mở, khung chat luôn chiếm toàn bộ viewport.
+`launcher.offset` áp dụng ở mọi kích thước màn hình. Website cần vị trí khác theo breakpoint hoặc để tránh bottom navigation thì gọi `MessageHub.setLauncherPosition()` khi layout thay đổi. Khi mở trên màn hình rộng tối đa 768 px, khung chat vẫn luôn chiếm toàn bộ viewport.
 
 ### 7.2 Nội dung theo ngôn ngữ
 

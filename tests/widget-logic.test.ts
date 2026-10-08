@@ -147,15 +147,16 @@ describe('settings defaults for the browser', () => {
     expect(s.preChat).toEqual({ mode: 'off', fields: [] });
     expect(s.locales).toEqual(['en', 'vi']);
     expect(s.defaultLocale).toBe('en');
-    expect(completeSettings({ theme: { color: '#112233' }, launcher: { color: '#abcdef', hidden: true } }).launcher).toMatchObject({
+    expect(completeSettings({ theme: { color: '#112233' }, launcher: { color: '#abcdef', size: 'xlarge', hidden: true } }).launcher).toMatchObject({
       color: '#abcdef',
+      size: 'xlarge',
       hidden: true,
       position: 'right',
     });
     expect(completeSettings({ launcher: { color: 'red;}body{display:none' } }).launcher.color).toBeUndefined();
-    expect(completeSettings({ launcher: { offset: { x: -1, y: 30 }, mobileOffset: { x: 24, y: 401 } } }).launcher).toMatchObject({
+    expect(completeSettings({ launcher: { size: 'huge' } }).launcher.size).toBe('medium');
+    expect(completeSettings({ launcher: { offset: { x: -1, y: 30 } } }).launcher).toMatchObject({
       offset: { x: 20, y: 30 },
-      mobileOffset: { x: 24, y: 16 },
     });
   });
 });
