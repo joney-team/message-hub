@@ -14,6 +14,7 @@ There is no hosted service, cloud dependency, Redis, or external database requir
 - Signed, transactional webhook outbox with retry
 - File attachments with type and size validation
 - Per-channel themes, content, pre-chat forms, and origin restrictions
+- Configurable launcher color, size and default position, plus runtime position, visibility and z-index controls
 - Eight UI languages: English, Vietnamese, Korean, Simplified Chinese, Japanese, Thai, French, and Russian
 - Public management API and live settings preview
 
@@ -80,6 +81,14 @@ After creating a channel, add the loader to the customer website:
 ```
 
 Replace the example hostname with your deployment. See [the integration guide](docs/integration.md) for the API, webhooks, CSP, widget API, localization, and preview protocol.
+
+After the loader's `load` event, the host page can reposition or hide the launcher at runtime, for example to clear a mobile bottom navigation:
+
+```js
+window.MessageHub.setLauncherPosition({ position: 'right', x: 16, y: 88 });
+window.MessageHub.setLauncherVisible(true);
+window.MessageHub.setLauncherZIndex(1000);
+```
 
 ## Configuration
 

@@ -4,7 +4,7 @@ title: Widget loader & nhúng
 domain: message-hub
 category: Core
 status: stable
-version: 1.0.1
+version: 1.0.8
 owner: maintainers
 last_verified: 2026-10-08
 modules: [src/loader, src/app/embed, src/app/w, src/proxy.ts, src/widget/useHost.ts, src/widget/protocol.ts]
@@ -67,6 +67,8 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 **BR-7** — Lỗi (không xác định được host, iframe không khởi động sau 15 s) ghi rõ ra console kèm gợi ý CSP / `X-Frame-Options`.
 
+**BR-8** — Runtime launcher API chỉ hoạt động trên instance đã khởi tạo. `setLauncherPosition()` nhận ít nhất một trong `position | x | y`, validate toàn bộ object trước khi mutate và cập nhật launcher cùng khung chat desktop; `setLauncherVisible()` chỉ ẩn/hiện button, không đóng chat; `setLauncherZIndex()` đặt z-index button và khung chat cao hơn một mức. Override không persist và reset khi `init()` lại.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Trên trang có CSP `default-src 'none'; script-src hub; frame-src hub; style-src 'self'` nút hiện, mở chat, gửi tin được, 0 vi phạm (`public/csp-test.html`; đã kiểm Chrome 2026-10-07).
@@ -99,7 +101,7 @@ Website khách nhúng widget bằng **một thẻ script**: `<script src="https:
 
 Production dùng `https://message-hub.example.com` cho loader, iframe và API; file đính kèm dùng `https://files.message-hub.example.com`. Host của loader vẫn suy ra từ `src` của script, không hardcode trong code; development giữ localhost.
 
-`init({ locale?, identify?, open? })` · `open()` · `close()` · `toggle()` · `setLauncherPosition({position?, x?, y?})` · `setLauncherVisible(boolean)` · `setLauncherZIndex(number)` · `setLocale(code|null)` · `identify(profile)` · `on(event, fn)` → hàm hủy · `off` · `destroy()`. Các override launcher chỉ tồn tại trong instance hiện tại và reset khi gọi `init()` lại. Thuộc tính thẻ script: `data-locale`, `data-auto-init="false"`.
+`init({ locale?, identify?, open? })` · `open()` · `close()` · `toggle()` · `setLauncherPosition({position?, x?, y?})` · `setLauncherVisible(boolean)` · `setLauncherZIndex(number)` · `setLocale(code|null)` · `identify(profile)` · `on(event, fn)` → hàm hủy · `off` · `destroy()`. `x/y` là integer `0–400`; z-index là integer `0–2147483647`. Các override launcher chỉ tồn tại trong instance hiện tại và reset khi gọi `init()` lại. Thuộc tính thẻ script: `data-locale`, `data-auto-init="false"`.
 
 ### Giao thức postMessage
 

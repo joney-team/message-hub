@@ -39,6 +39,7 @@ Tài liệu liên quan:
 | Webhook `{ type, channelId, data }`, không chữ ký | `{ id, event, createdAt, channel, data }`, ký HMAC |
 | Webhook `SDK_CONNECTED` | `channel.connected` |
 | Đổi locale bằng cách chèn lại script | `MessageHub.setLocale(code)` |
+| Offset desktop/mobile lưu riêng | Một `launcher.offset`; website đổi vị trí theo breakpoint bằng `MessageHub.setLauncherPosition()` |
 | Bull Board `/queues`, Swagger `/docs` | API deliveries, Bruno và tài liệu trong repo |
 
 ## 3. Chuyển settings
@@ -47,6 +48,7 @@ Tài liệu liên quan:
 |---|---|
 | `color` | `theme.color` |
 | `position: 'LEFT' / 'RIGHT'` | `launcher.position: 'left' / 'right'` |
+| Offset mặc định | `launcher.offset: { x, y }` |
 | `chatIcon` | `launcher.icon` |
 | `brandLogo` | `theme.logo` |
 | `brandName` | `content.brandName` theo locale |
@@ -69,7 +71,9 @@ Ví dụ:
       "logo": "https://example.com/logo.png"
     },
     "launcher": {
-      "position": "right"
+      "position": "right",
+      "offset": { "x": 20, "y": 20 },
+      "size": "medium"
     },
     "locales": ["vi", "en"],
     "defaultLocale": "vi",
@@ -121,11 +125,36 @@ Thay script cũ bằng:
 <script src="https://message-hub.example.com/embed/ch_xxx.js" async></script>
 ```
 
-Khi website đổi ngôn ngữ:
+Sau khi script phát sự kiện `load`, website có thể đổi ngôn ngữ:
 
 ```js
 window.MessageHub.setLocale('vi');
 ```
+
+Không gửi `launcher.mobileOffset`; schema hiện tại từ chối trường này. Website cần launcher nằm cao hơn bottom navigation trên mobile thì điều khiển ở runtime:
+
+```js
+const mobile = window.matchMedia('(max-width: 768px)');
+const syncLauncher = () => {
+  window.MessageHub.setLauncherPosition({
+    position: 'right',
+    x: 16,
+    y: mobile.matches ? 88 : 20,
+  });
+};
+
+syncLauncher();
+mobile.addEventListener('change', syncLauncher);
+```
+
+Có thể ẩn/hiện launcher theo route hoặc trạng thái website mà không đóng chat đang mở:
+
+```js
+window.MessageHub.setLauncherVisible(false);
+window.MessageHub.setLauncherZIndex(1000);
+```
+
+Xem lifecycle và ví dụ React đầy đủ trong [mục điều khiển widget](integration.md#43-điều-khiển-widget-windowmessagehub).
 
 Nếu website có CSP, cho phép:
 
@@ -145,6 +174,8 @@ frame-src https://message-hub.example.com;
 - [ ] Cập nhật trang cài đặt từ `GET /api/v1/meta`.
 - [ ] Cập nhật iframe preview và `content.overrides`.
 - [ ] Thay script trên website và dùng `MessageHub.setLocale()`.
+- [ ] Xóa `launcher.mobileOffset`; dùng `launcher.offset` làm mặc định và runtime API cho layout responsive.
+- [ ] Kiểm launcher không đè bottom navigation, modal hoặc floating actions ở desktop/mobile.
 - [ ] Kiểm thử tạo visitor, gửi/nhận tin, file, webhook retry và locale.
 - [ ] Chuyển traffic sang `message-hub.example.com`, theo dõi deliveries lỗi.
 - [ ] Xuất dữ liệu cần lưu trữ rồi tắt hạ tầng cũ.

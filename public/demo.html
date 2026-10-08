@@ -23,6 +23,11 @@
     <button type="button" id="open">open()</button>
     <button type="button" id="reinit">destroy() + init()</button>
     <button type="button" id="identify">identify({ name: 'Demo user' })</button>
+    <button type="button" id="launcher-left">Launcher left</button>
+    <button type="button" id="launcher-responsive">Responsive position</button>
+    <button type="button" id="launcher-hide">Hide launcher</button>
+    <button type="button" id="launcher-show">Show launcher</button>
+    <button type="button" id="launcher-z">z-index 1000</button>
   </fieldset>
   <fieldset>
     <legend>Live preview (unsaved settings, no visitor is created)</legend>
@@ -57,6 +62,15 @@
     document.getElementById('open').onclick = () => window.MessageHub.open();
     document.getElementById('reinit').onclick = () => { window.MessageHub.destroy(); window.MessageHub.init({}); };
     document.getElementById('identify').onclick = () => window.MessageHub.identify({ name: 'Demo user' });
+    document.getElementById('launcher-left').onclick = () => window.MessageHub.setLauncherPosition({ position: 'left', x: 24, y: 24 });
+    document.getElementById('launcher-responsive').onclick = () => window.MessageHub.setLauncherPosition({
+      position: 'right',
+      x: 16,
+      y: window.matchMedia('(max-width: 768px)').matches ? 88 : 20,
+    });
+    document.getElementById('launcher-hide').onclick = () => window.MessageHub.setLauncherVisible(false);
+    document.getElementById('launcher-show').onclick = () => window.MessageHub.setLauncherVisible(true);
+    document.getElementById('launcher-z').onclick = () => window.MessageHub.setLauncherZIndex(1000);
   </script>
 </body>
 </html>

@@ -158,11 +158,11 @@ Thuộc tính tùy chọn trên thẻ script:
 
 ### 4.2 Dùng trong React / Next.js
 
-Không có gói npm. Tạo một component nhỏ chèn chính thẻ script ở trên:
+Không có gói npm. Tạo một component nhỏ chèn chính thẻ script ở trên. Vì script tải `async`, component cần chờ sự kiện `load` trước khi gọi API:
 
 ```tsx
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 declare global {
   interface Window {
@@ -184,21 +184,45 @@ declare global {
 }
 
 export function MessageHubWidget({ host, channelId, locale }: { host: string; channelId: string; locale?: string }) {
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
+    setReady(false);
     const script = document.createElement('script');
     script.src = `${host}/embed/${channelId}.js`;
     script.async = true;
+    if (locale) script.dataset.locale = locale;
+    const handleLoad = () => setReady(true);
+    script.addEventListener('load', handleLoad);
     document.head.appendChild(script);
+
     return () => {
+      script.removeEventListener('load', handleLoad);
       window.MessageHub?.destroy();
       script.remove();
     };
   }, [host, channelId]);
 
-  // Đổi ngôn ngữ không cần gỡ và chèn lại script.
   useEffect(() => {
+    if (!ready) return;
     window.MessageHub?.setLocale(locale ?? null);
-  }, [locale]);
+  }, [ready, locale]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const mobile = window.matchMedia('(max-width: 768px)');
+    const syncLauncher = () => {
+      window.MessageHub?.setLauncherPosition({
+        position: 'right',
+        x: 16,
+        y: mobile.matches ? 88 : 20,
+      });
+    };
+
+    syncLauncher();
+    mobile.addEventListener('change', syncLauncher);
+    return () => mobile.removeEventListener('change', syncLauncher);
+  }, [ready]);
 
   return null;
 }
@@ -212,18 +236,24 @@ Component an toàn với render phía server (chỉ chạy trong `useEffect`) v�
 
 ### 4.3 Điều khiển widget: `window.MessageHub`
 
-| Hàm | Tác dụng |
-|---|---|
-| `open()`, `close()`, `toggle()` | Mở, đóng khung chat |
-| `setLauncherPosition({ position?, x?, y? })` | Đổi cạnh (`left` hoặc `right`) và offset của launcher ngay lập tức. `x`, `y` là số nguyên `0–400` px. Trên desktop, khung chat đang mở cũng di chuyển theo |
-| `setLauncherVisible(visible)` | Hiện hoặc ẩn launcher. Ẩn launcher không đóng khung chat đang mở |
-| `setLauncherZIndex(zIndex)` | Đặt z-index launcher bằng số nguyên `0–2147483647`; khung chat nằm cao hơn một mức |
-| `setLocale('en')` | Đổi ngôn ngữ ngay lập tức. Truyền `null` để quay về tự nhận |
-| `identify({ name, email, phone })` | Điền sẵn thông tin visitor. Xem ghi chú bên dưới |
-| `on(event, fn)`, `off(event, fn)` | Lắng nghe hoặc hủy lắng nghe sự kiện; `on()` cũng trả về một hàm để hủy |
-| `init(options)`, `destroy()` | Khởi tạo và gỡ widget |
+Script công bố API tại `window.MessageHub`. Với thẻ script `async`, chỉ gọi API sau sự kiện `load`. Nếu dùng `data-auto-init="false"`, gọi `init()` trước các hàm điều khiển khác. Các hàm thay đổi state không làm gì khi widget chưa `init` hoặc đã `destroy`.
 
-Ba hàm `setLauncher*` chỉ override launcher của instance hiện tại trên trang, không ghi lại settings của channel. Gọi `init()` lần nữa sẽ trả launcher về `position`, `offset`, `hidden` và `zIndex` đã lưu. Có thể gọi các hàm này bất kỳ lúc nào sau khi loader đã khởi tạo.
+| Hàm | Tham số và hành vi |
+|---|---|
+| `init(options?)` | Tạo widget. `options` hỗ trợ `locale?: string`, `identify?: Record<string, string \| number>`, `open?: boolean`. Gọi lại sẽ hủy instance hiện tại, tạo instance mới và reset mọi runtime override |
+| `destroy()` | Gỡ launcher, iframe và listener DOM nội bộ. Token visitor, mốc đã đọc và handler đã đăng ký bằng `on()` vẫn được giữ; dùng hàm unsubscribe hoặc `off()` để bỏ handler |
+| `open()`, `close()`, `toggle()` | Mở, đóng hoặc đảo trạng thái khung chat |
+| `setLauncherPosition({ position?, x?, y? })` | Đổi cạnh và offset ngay lập tức. `position` là `left` hoặc `right`; `x`, `y` là số nguyên `0–400` px. Có thể chỉ gửi một trường |
+| `setLauncherVisible(visible)` | `true` hiện launcher, `false` ẩn launcher. Không đóng khung chat đang mở |
+| `setLauncherZIndex(zIndex)` | Đặt z-index launcher bằng số nguyên `0–2147483647`; container chat dùng `zIndex + 1` |
+| `setLocale(code \| null)` | Đổi sang locale đã bật. Truyền `null` để quay về tự nhận từ `<html lang>`, trình duyệt và default locale |
+| `identify(profile)` | Gộp profile visitor vào session hiện tại. Xem ghi chú bảo mật bên dưới |
+| `on(event, fn)` | Lắng nghe sự kiện và trả về hàm unsubscribe |
+| `off(event, fn)` | Hủy đúng handler đã đăng ký bằng `on()` |
+
+`setLauncherPosition()` cập nhật launcher và khung chat desktop đang mở. Khi viewport rộng tối đa 768 px, khung chat đang mở vẫn full viewport; vị trí mới được thấy trên launcher sau khi đóng chat. Input sai bị bỏ qua toàn bộ và loader ghi cảnh báo `[MessageHub]` vào console, không áp dụng một phần object.
+
+Ba hàm `setLauncher*` chỉ override instance hiện tại trên trang, không ghi vào channel settings. Gọi `init()` lại hoặc tải lại trang sẽ dùng lại `launcher.position`, `launcher.offset`, `launcher.hidden` và `launcher.zIndex` đã lưu.
 
 Sự kiện của `on()`:
 
@@ -267,6 +297,29 @@ window.addEventListener('resize', syncLauncher);
 // Có thể đổi theo layout hoặc trạng thái của website.
 MessageHub.setLauncherVisible(true);
 MessageHub.setLauncherZIndex(1000);
+```
+
+Nếu website có bottom navigation thay đổi chiều cao, tính `y` từ chiều cao thực tế rồi gọi lại API:
+
+```js
+const bottomNav = document.querySelector('[data-bottom-navigation]');
+const syncLauncher = () => {
+  const navHeight = bottomNav?.getBoundingClientRect().height ?? 0;
+  MessageHub.setLauncherPosition({ y: Math.min(400, Math.ceil(navHeight) + 16) });
+};
+
+const observer = new ResizeObserver(syncLauncher);
+if (bottomNav) observer.observe(bottomNav);
+syncLauncher();
+```
+
+Ví dụ ẩn launcher trên một route nhưng giữ khả năng mở chat bằng nút riêng:
+
+```js
+MessageHub.setLauncherVisible(false);
+document.querySelector('#support-button').addEventListener('click', () => {
+  MessageHub.open();
+});
 ```
 
 > **`identify()` không xác minh danh tính.** Dữ liệu đến từ trình duyệt nên người dùng tự sửa được. Dùng nó để hiển thị và điền sẵn, không dùng để cấp quyền hay tin là "khách hàng KH001 thật".
@@ -879,6 +932,7 @@ Trình duyệt không báo lỗi cho người dùng khi widget bị chặn, nên
 5. **Trang HTTPS nhưng script dùng HTTP.** Trình duyệt chặn nội dung hỗn hợp. Production phải dùng `https://message-hub.example.com`.
 6. **Trình chặn quảng cáo.** Thử tắt để loại trừ.
 7. **Thay đổi cấu hình chưa có hiệu lực.** Reload website khách để `/embed/ch_….js` revalidate bằng ETag. Nếu vẫn nhận nội dung cũ, kiểm tra reverse proxy/CDN có đang ghi đè `Cache-Control: public, no-cache` hay không.
+8. **Runtime API không có tác dụng.** Với script `async`, kiểm tra lệnh được gọi sau sự kiện `load`; nếu dùng `data-auto-init="false"`, phải gọi `MessageHub.init()` trước. Input launcher sai range sẽ có cảnh báo `[MessageHub]` trong console.
 
 Để thử nhanh mà không cần website: mở `https://message-hub.example.com/demo.html?channel=ch_…`, hoặc mở thẳng khung chat tại `https://message-hub.example.com/w/ch_…`.
 

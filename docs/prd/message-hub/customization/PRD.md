@@ -4,7 +4,7 @@ title: Tùy biến cho dự án chính
 domain: message-hub
 category: Integration
 status: stable
-version: 1.0.3
+version: 1.0.8
 owner: maintainers
 last_verified: 2026-10-08
 modules: [src/settings, src/widget/theme.ts, src/widget/components/PreChat.tsx, src/app/api/v1/meta, src/studio, src/loader]
@@ -70,6 +70,8 @@ related_features: [channels, i18n, widget-sdk]
 
 **BR-8** — Message Hub Studio có structured controls cho toàn bộ `ChannelSettings`, raw JSON cho debug, launcher preview, iframe preview cho `welcome | prechat | chat` và tab theo dõi webhook deliveries của channel; thay đổi settings chỉ lưu sau khi API chấp nhận. Launcher preview mô phỏng button tròn/pill 48–72 px của loader với size đã chọn, custom launcher color hoặc brand color khi không override, custom icon, localized label, offset và trạng thái `hidden`. Tab Channel liệt kê chi tiết toàn bộ `window.MessageHub` API và ví dụ responsive ngay dưới section Embed.
 
+**BR-9** — `launcher.offset` là vị trí mặc định duy nhất cho mọi viewport. `mobileOffset` không thuộc schema và bị management API từ chối; migration DB xóa riêng field cũ mà giữ nguyên các launcher settings khác. Website chịu trách nhiệm gọi runtime API khi breakpoint hoặc chiều cao bottom navigation thay đổi.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Settings thiếu trường vẫn ra object đầy đủ; PATCH từng phần giữ phần còn lại; override key lạ bị từ chối (`tests/api-v1.test.ts`).
@@ -81,6 +83,8 @@ related_features: [channels, i18n, widget-sdk]
 **AC-4** — Message Hub Studio đổi settings/locale/screen trong iframe preview mà không tạo visitor; chế độ Launcher cập nhật theo draft settings; Save gửi settings đã chỉnh qua management API.
 
 **AC-5** — Runtime API đổi vị trí, visibility và z-index ngay trên launcher/khung chat đang mở, từ chối input sai mà không thay đổi một phần state, và reset override khi `init()` lại (`tests/loader.test.ts`).
+
+**AC-6** — Migration loại bỏ `mobileOffset` nhưng giữ custom color, size, position, offset, hidden và z-index của channel cũ (`tests/review-followups.test.ts`).
 
 ---
 
