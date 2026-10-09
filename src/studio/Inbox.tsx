@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -80,6 +81,7 @@ export function Inbox({ channels }: { channels: ChannelDto[] }) {
   const [reply, setReply] = useState('');
   const [senderName, setSenderName] = useState('');
   const [sending, setSending] = useState(false);
+  const [deletingVisitorId, setDeletingVisitorId] = useState<string | null>(null);
   const listRequest = useRef(0);
   const historyRequest = useRef(0);
   const selectedVisitor = useRef<string | null>(null);
@@ -258,6 +260,39 @@ export function Inbox({ channels }: { channels: ChannelDto[] }) {
     }
   };
 
+  const deleteSelectedConversation = async () => {
+    if (!selected || deletingVisitorId) return;
+    const visitorId = selected.visitor.id;
+    const name = visitorName(selected);
+    const confirmed = window.confirm(
+      `Delete the conversation with "${name}"?\n\nThis permanently deletes all messages in this conversation. The visitor can start a new conversation by sending another message.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingVisitorId(visitorId);
+    setHistoryError(null);
+    try {
+      await studioApi<void>(`/api/v1/visitors/${encodeURIComponent(visitorId)}/messages`, {
+        method: 'DELETE',
+      });
+      listRequest.current++;
+      historyRequest.current++;
+
+      const deletedIndex = conversations.findIndex((conversation) => conversation.visitor.id === visitorId);
+      const remaining = conversations.filter((conversation) => conversation.visitor.id !== visitorId);
+      setConversations(remaining);
+      if (selectedVisitor.current === visitorId) {
+        const next = remaining[Math.min(Math.max(deletedIndex, 0), remaining.length - 1)] ?? null;
+        selectConversation(next?.visitor.id ?? null);
+      }
+      void loadConversations(true);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : 'Could not delete conversation');
+    } finally {
+      setDeletingVisitorId(null);
+    }
+  };
+
   return (
     <section className="studio-inbox">
       <aside className="studio-inbox-list">
@@ -344,7 +379,24 @@ export function Inbox({ channels }: { channels: ChannelDto[] }) {
                   </p>
                 </div>
               </div>
-              <code>{selected.visitor.id}</code>
+              <div className="studio-thread-actions">
+                <code>{selected.visitor.id}</code>
+                <button
+                  className="studio-icon-button"
+                  data-tone="danger"
+                  type="button"
+                  title="Delete conversation"
+                  aria-label="Delete conversation"
+                  onClick={() => void deleteSelectedConversation()}
+                  disabled={deletingVisitorId !== null}
+                >
+                  {deletingVisitorId === selected.visitor.id ? (
+                    <LoaderCircle className="studio-spin" size={17} />
+                  ) : (
+                    <Trash2 size={17} />
+                  )}
+                </button>
+              </div>
             </header>
             <div className="studio-thread-messages" ref={messageList}>
               {historyHasMore && (
@@ -398,6 +450,7 @@ export function Inbox({ channels }: { channels: ChannelDto[] }) {
                     setSenderName(event.target.value);
                     sessionStorage.setItem('message-hub:studio-sender-name', event.target.value);
                   }}
+                  disabled={deletingVisitorId !== null}
                   maxLength={100}
                   placeholder="Support agent"
                 />
@@ -406,11 +459,12 @@ export function Inbox({ channels }: { channels: ChannelDto[] }) {
                 <textarea
                   value={reply}
                   onChange={(event) => setReply(event.target.value)}
+                  disabled={deletingVisitorId !== null}
                   maxLength={4000}
                   rows={3}
                   placeholder="Write a reply"
                 />
-                <button className="studio-primary" type="submit" disabled={!reply.trim() || sending}>
+                <button className="studio-primary" type="submit" disabled={!reply.trim() || sending || deletingVisitorId !== null}>
                   {sending ? <LoaderCircle className="studio-spin" size={17} /> : <Send size={17} />}
                   {sending ? 'Sending' : 'Send'}
                 </button>

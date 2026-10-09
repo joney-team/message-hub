@@ -4,7 +4,7 @@ title: Hội thoại, realtime và UI chat
 domain: message-hub
 category: Core
 status: stable
-version: 1.0.1
+version: 1.0.2
 owner: maintainers
 last_verified: 2026-10-09
 modules: [src/server/services/sessions.ts, src/server/services/messages.ts, src/server/services/visitors.ts, src/server/services/conversations.ts, src/server/realtime/hub.ts, src/app/api/widget, src/app/api/v1/visitors, src/app/api/v1/conversations, src/widget, src/studio/Inbox.tsx]
@@ -79,6 +79,8 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **BR-11** — Inbox Studio poll danh sách hội thoại và thread đang mở bằng Studio session; reply dùng `POST /api/v1/visitors/[id]/messages` với `sender.name`, nên tin vẫn được lưu cùng outbox rồi phát SSE như mọi API reply khác.
 
+**BR-12** — Studio cho phép xóa hội thoại sau bước xác nhận bằng `DELETE /api/v1/visitors/[id]/messages`; thao tác xóa toàn bộ messages nhưng giữ visitor/session để visitor có thể nhắn lại, đồng thời loại hội thoại khỏi Inbox và chọn hội thoại kế tiếp.
+
 ### Tiêu chí nghiệm thu
 
 **AC-1** — Visitor A không đọc được tin của visitor B dù cùng channel; thiếu/sai token → 401 (`tests/widget-api.test.ts`).
@@ -90,6 +92,8 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 **AC-4** — Luồng bàn phím hoàn chỉnh (chào → form → gửi → thoát hội thoại), đổi locale lúc chạy, vừa 320 px (kiểm Chrome 2026-10-07).
 
 **AC-5** — API key chỉ thấy conversation của channel mình sở hữu; filter channel khác owner trả 404; kết quả mới nhất đứng trước (`tests/api-v1.test.ts`).
+
+**AC-6** — Studio yêu cầu xác nhận trước khi xóa hội thoại, gọi `DELETE /api/v1/visitors/[id]/messages`, bỏ hội thoại khỏi danh sách và chọn hội thoại kế tiếp nếu có (`tests/studio-inbox.test.ts`, `tests/api-v1.test.ts`).
 
 ---
 
@@ -106,7 +110,7 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 | Admin routes | `src/app/api/v1/conversations/route.ts`, `src/app/api/v1/visitors/**` |
 | Rate limit | `src/server/http/rate-limit.ts` |
 | UI | `src/widget/ChatApp.tsx`, `components/`, `useSession.ts`, `useChat.ts`, `reducer.ts`, `stream.ts`, `sse.ts`, `linkify.ts` |
-| Management Inbox | `src/studio/Inbox.tsx`, `src/studio/ChannelStudio.tsx` |
+| Management Inbox | `src/studio/Inbox.tsx`, `src/studio/ChannelStudio.tsx`; header hội thoại cho phép xác nhận xóa toàn bộ messages, cập nhật selection và danh sách ngay sau khi API thành công |
 
 `ChatScreen.tsx` xác định ranh giới nhóm theo direction, sender name và ngày; `MessageBubble.tsx` dùng ranh giới đó để đặt header, avatar, timestamp và kiểu bo góc.
 
