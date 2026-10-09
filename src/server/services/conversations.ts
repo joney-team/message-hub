@@ -1,20 +1,26 @@
 import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { channels, messages, visitors } from '../db/schema';
+import type { OwnerScope } from '../http/auth';
 import { getOwnedChannel } from './channels';
 import { serializeMessage } from './messages';
 import { serializeVisitor } from './visitors';
 
 export function listConversations(
-  owner: string,
+  owner: OwnerScope,
   opts: { channelId?: string; limit: number; offset: number },
 ) {
   if (opts.channelId) getOwnedChannel(owner, opts.channelId);
 
   const latestSeq = max(messages.seq).as('latest_seq');
-  const ownerFilter = opts.channelId
-    ? and(eq(channels.owner, owner), eq(channels.id, opts.channelId))
-    : eq(channels.owner, owner);
+  const ownerFilter =
+    owner === null
+      ? opts.channelId
+        ? eq(channels.id, opts.channelId)
+        : undefined
+      : opts.channelId
+        ? and(eq(channels.owner, owner), eq(channels.id, opts.channelId))
+        : eq(channels.owner, owner);
   const rows = getDb()
     .select({ visitor: visitors, channel: channels, latestSeq })
     .from(visitors)

@@ -4,9 +4,9 @@ title: Hội thoại, realtime và UI chat
 domain: message-hub
 category: Core
 status: stable
-version: 1.0.0
+version: 1.0.1
 owner: maintainers
-last_verified: 2026-10-08
+last_verified: 2026-10-09
 modules: [src/server/services/sessions.ts, src/server/services/messages.ts, src/server/services/visitors.ts, src/server/services/conversations.ts, src/server/realtime/hub.ts, src/app/api/widget, src/app/api/v1/visitors, src/app/api/v1/conversations, src/widget, src/studio/Inbox.tsx]
 entities: [visitors, messages]
 routes: [POST /api/widget/sessions, GET/PATCH/DELETE /api/widget/me, GET/POST /api/widget/messages, GET /api/widget/stream, GET /api/v1/conversations, GET /api/v1/visitors/[id], GET/POST/DELETE /api/v1/visitors/[id]/messages, POST /api/v1/visitors/[id]/typing]
@@ -75,9 +75,9 @@ Visitor chat với workspace qua widget; phía workspace (dự án chính) nhậ
 
 **BR-9** — Các tin liên tiếp cùng hướng, cùng sender và cùng ngày được vẽ thành một nhóm: tên sender ở tin đầu, avatar ở tin cuối, timestamp ở cuối nhóm và góc bubble nối theo vị trí đầu/giữa/cuối.
 
-**BR-10** — `GET /api/v1/conversations` chỉ liệt kê visitor thuộc channel của API key hiện tại và đã có ít nhất một tin; sắp theo `seq` mới nhất, có filter `channelId`, offset pagination và kèm `channel`, `visitor`, `latestMessage`.
+**BR-10** — Với API key, `GET /api/v1/conversations` chỉ liệt kê visitor thuộc channel của owner hiện tại; với Studio session, route liệt kê mọi owner. Kết quả chỉ gồm visitor đã có ít nhất một tin, sắp theo `seq` mới nhất, có filter `channelId`, offset pagination và kèm `channel`, `visitor`, `latestMessage`.
 
-**BR-11** — Inbox Studio poll danh sách hội thoại và thread đang mở; reply dùng `POST /api/v1/visitors/[id]/messages` với `sender.name`, nên tin vẫn được lưu cùng outbox rồi phát SSE như mọi API reply khác.
+**BR-11** — Inbox Studio poll danh sách hội thoại và thread đang mở bằng Studio session; reply dùng `POST /api/v1/visitors/[id]/messages` với `sender.name`, nên tin vẫn được lưu cùng outbox rồi phát SSE như mọi API reply khác.
 
 ### Tiêu chí nghiệm thu
 

@@ -5,7 +5,10 @@ import { getDb } from '../db/client';
 import { channels, visitors } from '../db/schema';
 import { hashToken } from '../ids';
 import { debug } from '../log';
+import { requireStudioSession } from '../studio-auth';
 import { unauthorized } from './errors';
+
+export type OwnerScope = string | null;
 
 export function bearerToken(req: Request): string | null {
   const header = req.headers.get('authorization');
@@ -38,6 +41,13 @@ export function requireApiKey(req: Request): string {
     throw unauthorized();
   }
   return owner;
+}
+
+/** Management API: API keys are owner-scoped; a Studio session can access every owner. */
+export function requireManagement(req: Request): OwnerScope {
+  if (bearerToken(req)) return requireApiKey(req);
+  requireStudioSession(req);
+  return null;
 }
 
 export type VisitorRow = typeof visitors.$inferSelect;

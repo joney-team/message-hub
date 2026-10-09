@@ -67,6 +67,8 @@ Bạn cần ba thứ:
    ```
 
    Phần trước dấu `:` là tên chủ sở hữu (`owner`). Mỗi key chỉ thấy và sửa được channel do chính nó tạo. Có thể khai báo nhiều key, kể cả nhiều key cùng tên để xoay key mà không gián đoạn.
+
+   API key là credential của hợp đồng tích hợp. Message Hub Studio dùng mật khẩu và session riêng; cookie nội bộ của Studio không phải cơ chế xác thực dành cho ứng dụng chính.
 3. **Một endpoint nhận webhook** ở phía bạn mà Message Hub gọi tới được, ví dụ `https://api.example.com/plugins/message-hubs/webhook`.
 
 Kiểm tra kết nối:

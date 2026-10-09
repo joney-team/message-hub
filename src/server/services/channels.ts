@@ -1,7 +1,9 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
+import { getConfig } from '../config';
 import { getDb } from '../db/client';
 import { channels } from '../db/schema';
+import type { OwnerScope } from '../http/auth';
 import { notFound } from '../http/errors';
 import { newId, newWebhookSecret } from '../ids';
 import { enqueueEvent } from '../queue/outbox';
@@ -75,11 +77,11 @@ export function serializeChannel(row: ChannelRow): ChannelDto {
 }
 
 /** Unknown id and "belongs to another owner" are indistinguishable on purpose. */
-export function getOwnedChannel(owner: string, id: string): ChannelRow {
+export function getOwnedChannel(owner: OwnerScope, id: string): ChannelRow {
   const row = getDb()
     .select()
     .from(channels)
-    .where(and(eq(channels.id, id), eq(channels.owner, owner)))
+    .where(owner === null ? eq(channels.id, id) : and(eq(channels.id, id), eq(channels.owner, owner)))
     .get();
   if (!row) throw notFound('CHANNEL_NOT_FOUND', 'Channel not found');
   return row;
@@ -89,8 +91,15 @@ export function getChannel(id: string): ChannelRow | undefined {
   return getDb().select().from(channels).where(eq(channels.id, id)).get();
 }
 
-export function listChannels(owner: string, opts: { ref?: string; limit: number; offset: number }) {
-  const where = opts.ref !== undefined ? and(eq(channels.owner, owner), eq(channels.ref, opts.ref)) : eq(channels.owner, owner);
+export function listChannels(owner: OwnerScope, opts: { ref?: string; limit: number; offset: number }) {
+  const where =
+    owner === null
+      ? opts.ref === undefined
+        ? undefined
+        : eq(channels.ref, opts.ref)
+      : opts.ref !== undefined
+        ? and(eq(channels.owner, owner), eq(channels.ref, opts.ref))
+        : eq(channels.owner, owner);
   const rows = getDb()
     .select()
     .from(channels)
@@ -119,7 +128,11 @@ export function createChannel(owner: string, body: z.output<typeof createChannel
   return getDb().insert(channels).values(row).returning().get();
 }
 
-export function updateChannel(owner: string, id: string, body: z.output<typeof updateChannelBody>): ChannelRow {
+export function ownerForNewChannel(scope: OwnerScope): string {
+  return scope ?? getConfig().apiKeys[0].owner;
+}
+
+export function updateChannel(owner: OwnerScope, id: string, body: z.output<typeof updateChannelBody>): ChannelRow {
   const current = getOwnedChannel(owner, id);
   const set: Partial<typeof channels.$inferInsert> = { updatedAt: new Date() };
   if (body.name !== undefined) set.name = body.name;
@@ -130,7 +143,7 @@ export function updateChannel(owner: string, id: string, body: z.output<typeof u
   return getDb().update(channels).set(set).where(eq(channels.id, id)).returning().get();
 }
 
-export function updateWebhook(owner: string, id: string, body: z.output<typeof updateWebhookBody>): ChannelRow {
+export function updateWebhook(owner: OwnerScope, id: string, body: z.output<typeof updateWebhookBody>): ChannelRow {
   getOwnedChannel(owner, id);
   return getDb()
     .update(channels)
@@ -140,7 +153,7 @@ export function updateWebhook(owner: string, id: string, body: z.output<typeof u
     .get();
 }
 
-export function rotateWebhookSecret(owner: string, id: string): ChannelRow {
+export function rotateWebhookSecret(owner: OwnerScope, id: string): ChannelRow {
   getOwnedChannel(owner, id);
   return getDb()
     .update(channels)
@@ -150,7 +163,7 @@ export function rotateWebhookSecret(owner: string, id: string): ChannelRow {
     .get();
 }
 
-export function deleteChannel(owner: string, id: string): void {
+export function deleteChannel(owner: OwnerScope, id: string): void {
   getOwnedChannel(owner, id);
   const fileIds = fileIdsOfChannel(id);
   getDb().delete(channels).where(eq(channels.id, id)).run();

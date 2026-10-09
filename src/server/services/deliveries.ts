@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { channels, webhookDeliveries } from '../db/schema';
+import type { OwnerScope } from '../http/auth';
 import { conflict, notFound } from '../http/errors';
 import { wakeWorker } from '../queue/worker';
 
@@ -22,12 +23,16 @@ export function serializeDelivery(d: Row) {
 }
 
 /** Puts a failed (or waiting) delivery back in line, due immediately. */
-export function retryDelivery(owner: string, id: number) {
+export function retryDelivery(owner: OwnerScope, id: number) {
   const row = getDb()
     .select({ d: webhookDeliveries })
     .from(webhookDeliveries)
     .innerJoin(channels, eq(channels.id, webhookDeliveries.channelId))
-    .where(and(eq(webhookDeliveries.id, id), eq(channels.owner, owner)))
+    .where(
+      owner === null
+        ? eq(webhookDeliveries.id, id)
+        : and(eq(webhookDeliveries.id, id), eq(channels.owner, owner)),
+    )
     .get();
   if (!row) throw notFound('DELIVERY_NOT_FOUND', 'Delivery not found');
   if (row.d.status === 'delivered') throw conflict('ALREADY_DELIVERED', 'Delivery already succeeded');

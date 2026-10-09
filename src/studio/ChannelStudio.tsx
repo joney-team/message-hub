@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Inbox as InboxIcon,
+  KeyRound,
   ListRestart,
   LogOut,
   MessageCircle,
@@ -24,21 +25,21 @@ import {
   Trash2,
   Type,
   Webhook,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { localize } from '@/i18n';
 import { completeSettings } from '@/settings/defaults';
 import { LAUNCHER_SIZE_STYLES } from '@/settings/launcher';
 import type { ChannelSettings, LocalizedText } from '@/settings/schema';
 import { readableOn } from '@/widget/theme';
 import { Inbox } from './Inbox';
+import { STUDIO_UNAUTHORIZED_EVENT, StudioApiError, studioApi } from './api';
 import {
   buildMergePatch,
   copyChannel,
-  formatApiError,
   parseOrigins,
-  type ApiErrorBody,
   type ChannelDto,
   type DeliveryDto,
   type StudioMeta,
@@ -61,45 +62,34 @@ const TABS: Array<{ id: Tab; label: string; icon: typeof Settings2 }> = [
   { id: 'debug', label: 'Debug', icon: Code2 },
 ];
 
-async function api<T>(path: string, key: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set('Authorization', `Bearer ${key}`);
-  if (init?.body) headers.set('Content-Type', 'application/json');
-  const response = await fetch(path, { ...init, headers, cache: 'no-store' });
-  if (!response.ok) {
-    let body: ApiErrorBody | null = null;
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      // The status still gives a useful error when a proxy returns a non-JSON body.
-    }
-    throw new Error(formatApiError(response.status, body));
-  }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
-}
-
-async function loadChannels(key: string): Promise<ChannelDto[]> {
+async function loadChannels(notifyUnauthorized = true): Promise<ChannelDto[]> {
   const all: ChannelDto[] = [];
   let offset = 0;
   for (;;) {
-    const page = await api<{ data: ChannelDto[]; hasMore: boolean }>(`/api/v1/channels?limit=100&offset=${offset}`, key);
+    const page = await studioApi<{ data: ChannelDto[]; hasMore: boolean }>(
+      `/api/v1/channels?limit=100&offset=${offset}`,
+      undefined,
+      { notifyUnauthorized },
+    );
     all.push(...page.data);
     if (!page.hasMore) return all;
     offset += page.data.length;
   }
 }
 
-async function loadDeliveries(key: string, channelId: string): Promise<{ data: DeliveryDto[]; hasMore: boolean }> {
-  return api<{ data: DeliveryDto[]; hasMore: boolean }>(
+async function loadDeliveries(channelId: string): Promise<{ data: DeliveryDto[]; hasMore: boolean }> {
+  return studioApi<{ data: DeliveryDto[]; hasMore: boolean }>(
     `/api/v1/deliveries?channelId=${encodeURIComponent(channelId)}&limit=100`,
-    key,
   );
 }
 
 export function ChannelStudio() {
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [channels, setChannels] = useState<ChannelDto[]>([]);
   const [meta, setMeta] = useState<StudioMeta>(EMPTY_META);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -122,21 +112,27 @@ export function ChannelStudio() {
   const [previewLocale, setPreviewLocale] = useState('en');
   const [rawSettings, setRawSettings] = useState('');
   const iframe = useRef<HTMLIFrameElement>(null);
-  const keyInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
   const deliveryRequest = useRef(0);
 
-  const connect = useCallback(async (key: string) => {
-    const trimmed = key.trim();
-    if (!trimmed) return;
+  const clearStudio = useCallback(() => {
+    deliveryRequest.current++;
+    setAuthenticated(false);
+    setChannels([]);
+    setDraft(null);
+    setSaved(null);
+    setDeliveries([]);
+  }, []);
+
+  const openStudio = useCallback(async (initial = false) => {
     setLoading(true);
     setNotice(null);
     try {
       const [nextChannels, nextMeta] = await Promise.all([
-        loadChannels(trimmed),
-        api<StudioMeta>('/api/v1/meta', trimmed),
+        loadChannels(!initial),
+        studioApi<StudioMeta>('/api/v1/meta', undefined, { notifyUnauthorized: !initial }),
       ]);
-      sessionStorage.setItem('message-hub:studio-key', trimmed);
-      setApiKey(trimmed);
+      setAuthenticated(true);
       setChannels(nextChannels);
       setMeta(nextMeta);
       const first = nextChannels[0] ?? null;
@@ -148,18 +144,60 @@ export function ChannelStudio() {
         setPreviewLocale(first.settings.defaultLocale);
       }
     } catch (error) {
-      setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Could not connect' });
-      sessionStorage.removeItem('message-hub:studio-key');
-      setApiKey('');
+      clearStudio();
+      if (!(error instanceof StudioApiError && error.status === 401)) {
+        setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Could not open studio' });
+      } else if (!initial) {
+        setNotice({ tone: 'error', text: 'Your Studio session expired. Sign in again.' });
+      }
+    } finally {
+      setLoading(false);
+      setAuthChecked(true);
+    }
+  }, [clearStudio]);
+
+  useEffect(() => {
+    queueMicrotask(() => void openStudio(true));
+  }, [openStudio]);
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      clearStudio();
+      setAuthChecked(true);
+      setNotice({ tone: 'error', text: 'Your Studio session expired. Sign in again.' });
+    };
+    window.addEventListener(STUDIO_UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(STUDIO_UNAUTHORIZED_EVENT, onUnauthorized);
+  }, [clearStudio]);
+
+  useEffect(() => {
+    if (!showPasswordDialog) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !changingPassword) setShowPasswordDialog(false);
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [changingPassword, showPasswordDialog]);
+
+  const login = async (password: string) => {
+    if (!password) return;
+    setLoading(true);
+    setNotice(null);
+    try {
+      await studioApi<{ authenticated: true }>(
+        '/api/studio/session',
+        { method: 'POST', body: JSON.stringify({ password }) },
+        { notifyUnauthorized: false },
+      );
+      if (passwordInput.current) passwordInput.current.value = '';
+      await openStudio();
+    } catch (error) {
+      setNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Could not sign in' });
+      setAuthChecked(true);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem('message-hub:studio-key');
-    if (stored) queueMicrotask(() => void connect(stored));
-  }, [connect]);
+  };
 
   const sendPreview = useCallback(() => {
     if (!draft || !iframe.current?.contentWindow) return;
@@ -207,12 +245,12 @@ export function ChannelStudio() {
 
   const refreshDeliveries = useCallback(
     async (quiet = false) => {
-      if (!selectedId || !apiKey) return;
+      if (!selectedId) return;
       const request = ++deliveryRequest.current;
       if (!quiet) setDeliveriesLoading(true);
       setDeliveryError(null);
       try {
-        const result = await loadDeliveries(apiKey, selectedId);
+        const result = await loadDeliveries(selectedId);
         if (request !== deliveryRequest.current) return;
         setDeliveries(result.data);
         setDeliveriesHasMore(result.hasMore);
@@ -223,7 +261,7 @@ export function ChannelStudio() {
         if (request === deliveryRequest.current) setDeliveriesLoading(false);
       }
     },
-    [apiKey, selectedId],
+    [selectedId],
   );
 
   useEffect(() => {
@@ -240,7 +278,7 @@ export function ChannelStudio() {
     setLoading(true);
     setNotice(null);
     try {
-      const next = await loadChannels(apiKey);
+      const next = await loadChannels();
       setChannels(next);
       const current = next.find((channel) => channel.id === selectedId) ?? next[0] ?? null;
       if (current) selectChannel(current);
@@ -282,7 +320,7 @@ export function ChannelStudio() {
     setNotice(null);
     try {
       const settings = buildMergePatch(saved.settings, draft.settings);
-      const updated = await api<ChannelDto>(`/api/v1/channels/${draft.id}`, apiKey, {
+      const updated = await studioApi<ChannelDto>(`/api/v1/channels/${draft.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           name: draft.name,
@@ -294,7 +332,7 @@ export function ChannelStudio() {
       const final =
         draft.webhookUrl === saved.webhookUrl
           ? updated
-          : await api<ChannelDto>(`/api/v1/channels/${draft.id}/webhook`, apiKey, {
+          : await studioApi<ChannelDto>(`/api/v1/channels/${draft.id}/webhook`, {
               method: 'PUT',
               body: JSON.stringify({ webhookUrl: draft.webhookUrl || null }),
             });
@@ -314,7 +352,7 @@ export function ChannelStudio() {
     setLoading(true);
     setNotice(null);
     try {
-      const created = await api<ChannelDto>('/api/v1/channels', apiKey, {
+      const created = await studioApi<ChannelDto>('/api/v1/channels', {
         method: 'POST',
         body: JSON.stringify({ name: 'Untitled channel' }),
       });
@@ -341,7 +379,7 @@ export function ChannelStudio() {
     setDeleting(true);
     setNotice(null);
     try {
-      await api<void>(`/api/v1/channels/${draft.id}`, apiKey, { method: 'DELETE' });
+      await studioApi<void>(`/api/v1/channels/${draft.id}`, { method: 'DELETE' });
       const deletedIndex = channels.findIndex((channel) => channel.id === draft.id);
       const remaining = channels.filter((channel) => channel.id !== draft.id);
       const next = remaining[Math.min(Math.max(deletedIndex, 0), remaining.length - 1)] ?? null;
@@ -362,18 +400,61 @@ export function ChannelStudio() {
     }
   };
 
-  const logout = () => {
-    deliveryRequest.current++;
-    sessionStorage.removeItem('message-hub:studio-key');
-    setApiKey('');
-    setChannels([]);
-    setDraft(null);
-    setSaved(null);
-    setDeliveries([]);
-    setNotice(null);
+  const logout = async () => {
+    try {
+      await studioApi<void>('/api/studio/session', { method: 'DELETE' }, { notifyUnauthorized: false });
+    } finally {
+      clearStudio();
+      setAuthChecked(true);
+      setNotice(null);
+    }
   };
 
-  if (!apiKey) {
+  const changePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const currentPassword = String(form.get('currentPassword') ?? '');
+    const newPassword = String(form.get('newPassword') ?? '');
+    const confirmPassword = String(form.get('confirmPassword') ?? '');
+    if (newPassword !== confirmPassword) {
+      setPasswordNotice({ tone: 'error', text: 'New passwords do not match' });
+      return;
+    }
+    setChangingPassword(true);
+    setPasswordNotice(null);
+    try {
+      await studioApi<{ changed: true }>(
+        '/api/studio/password',
+        {
+          method: 'PUT',
+          body: JSON.stringify({ currentPassword, newPassword }),
+        },
+        { notifyUnauthorized: false },
+      );
+      formElement.reset();
+      setShowPasswordDialog(false);
+      setNotice({ tone: 'success', text: 'Studio password changed' });
+    } catch (error) {
+      setPasswordNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Could not change password' });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  if (!authChecked) {
+    return (
+      <main className="studio-login">
+        <section className="studio-login-panel studio-login-loading" aria-live="polite">
+          <Image className="studio-brand-mark" src="/message-hub-mark.svg" alt="" width={76} height={49} priority />
+          <RefreshCw className="studio-spin" size={22} />
+          <strong>Opening studio</strong>
+        </section>
+      </main>
+    );
+  }
+
+  if (!authenticated) {
     return (
       <main className="studio-login">
         <section className="studio-login-panel">
@@ -384,32 +465,34 @@ export function ChannelStudio() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              void connect(keyInput.current?.value ?? '');
+              void login(passwordInput.current?.value ?? '');
             }}
           >
-            <Field label="API key">
+            <Field label="Password">
               <div className="studio-input-action">
                 <input
-                  ref={keyInput}
+                  ref={passwordInput}
                   autoFocus
-                  autoComplete="new-password"
-                  name="message-hub-api-key"
+                  autoComplete="current-password"
+                  name="password"
                   spellCheck={false}
-                  type={showKey ? 'text' : 'password'}
-                  placeholder="Enter a management API key"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter the Studio password"
                 />
-                <IconButton label={showKey ? 'Hide API key' : 'Show API key'} onClick={() => setShowKey((value) => !value)}>
-                  {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                <IconButton label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </IconButton>
               </div>
             </Field>
             {notice && <Notice notice={notice} />}
             <button className="studio-primary studio-login-button" type="submit" disabled={loading}>
               {loading ? <RefreshCw className="studio-spin" size={17} /> : <ArrowUpRight size={17} />}
-              {loading ? 'Connecting' : 'Open studio'}
+              {loading ? 'Signing in' : 'Open studio'}
             </button>
           </form>
-          <p className="studio-security-note">The key is kept only in this browser tab.</p>
+          <p className="studio-security-note">
+            Default password: <code>messagehub@sayhi</code>
+          </p>
         </section>
       </main>
     );
@@ -427,7 +510,16 @@ export function ChannelStudio() {
             <IconButton label="Refresh channels" onClick={() => void refresh()} disabled={loading}>
               <RefreshCw className={loading ? 'studio-spin' : ''} size={17} />
             </IconButton>
-            <IconButton label="Forget API key" onClick={logout}>
+            <IconButton
+              label="Change password"
+              onClick={() => {
+                setPasswordNotice(null);
+                setShowPasswordDialog(true);
+              }}
+            >
+              <KeyRound size={17} />
+            </IconButton>
+            <IconButton label="Sign out" onClick={() => void logout()}>
               <LogOut size={17} />
             </IconButton>
           </div>
@@ -485,7 +577,7 @@ export function ChannelStudio() {
       </aside>
 
       {view === 'inbox' ? (
-        <Inbox apiKey={apiKey} channels={channels} />
+        <Inbox channels={channels} />
       ) : draft ? (
         <>
           <section className="studio-editor">
@@ -564,7 +656,7 @@ export function ChannelStudio() {
                     setRetryingDeliveryId(delivery.id);
                     setDeliveryError(null);
                     try {
-                      const updated = await api<DeliveryDto>(`/api/v1/deliveries/${delivery.id}/retry`, apiKey, {
+                      const updated = await studioApi<DeliveryDto>(`/api/v1/deliveries/${delivery.id}/retry`, {
                         method: 'POST',
                       });
                       setDeliveries((items) => items.map((item) => (item.id === updated.id ? updated : item)));
@@ -644,6 +736,48 @@ export function ChannelStudio() {
             New channel
           </button>
         </section>
+      )}
+      {showPasswordDialog && (
+        <div
+          className="studio-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !changingPassword) setShowPasswordDialog(false);
+          }}
+        >
+          <section className="studio-modal" role="dialog" aria-modal="true" aria-labelledby="studio-password-title">
+            <header>
+              <div>
+                <p className="studio-kicker">Security</p>
+                <h2 id="studio-password-title">Change Studio password</h2>
+              </div>
+              <IconButton label="Close" onClick={() => setShowPasswordDialog(false)} disabled={changingPassword}>
+                <X size={18} />
+              </IconButton>
+            </header>
+            <form onSubmit={(event) => void changePassword(event)}>
+              <Field label="Current password">
+                <input name="currentPassword" type="password" autoComplete="current-password" autoFocus required />
+              </Field>
+              <Field label="New password" hint="Use at least 8 characters.">
+                <input name="newPassword" type="password" autoComplete="new-password" minLength={8} required />
+              </Field>
+              <Field label="Confirm new password">
+                <input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required />
+              </Field>
+              {passwordNotice && <Notice notice={passwordNotice} />}
+              <div className="studio-modal-actions">
+                <button className="studio-secondary" type="button" onClick={() => setShowPasswordDialog(false)} disabled={changingPassword}>
+                  Cancel
+                </button>
+                <button className="studio-primary" type="submit" disabled={changingPassword}>
+                  {changingPassword ? <RefreshCw className="studio-spin" size={17} /> : <KeyRound size={17} />}
+                  {changingPassword ? 'Changing' : 'Change password'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       )}
     </main>
   );

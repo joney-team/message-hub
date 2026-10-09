@@ -124,3 +124,19 @@ export const webhookDeliveries = sqliteTable(
     index('deliveries_channel_status_idx').on(t.channelId, t.status, t.id),
   ],
 );
+
+export const studioCredentials = sqliteTable('studio_credentials', {
+  id: integer('id').primaryKey(),
+  passwordHash: text('password_hash').notNull(),
+  updatedAt: ts('updated_at').notNull(),
+});
+
+export const studioSessions = sqliteTable(
+  'studio_sessions',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    expiresAt: ts('expires_at').notNull(),
+    createdAt: ts('created_at').notNull(),
+  },
+  (t) => [index('studio_sessions_expires_idx').on(t.expiresAt)],
+);

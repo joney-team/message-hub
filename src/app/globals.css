@@ -189,11 +189,94 @@ body {
   text-align: center;
 }
 
+.studio-security-note code {
+  color: var(--studio-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.studio-login-loading {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: var(--studio-muted);
+}
+
+.studio-login-loading .studio-brand-mark {
+  margin-bottom: 14px;
+}
+
+.studio-login-loading strong {
+  color: var(--studio-text);
+  font-size: 14px;
+}
+
 .studio-shell {
   display: grid;
   grid-template-columns: 260px minmax(520px, 1fr) minmax(360px, 440px);
   height: 100dvh;
   overflow: hidden;
+}
+
+.studio-modal-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(23 25 28 / 44%);
+}
+
+.studio-modal {
+  width: min(460px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  border: 1px solid var(--studio-line);
+  border-radius: 8px;
+  background: var(--studio-panel);
+  box-shadow: 0 24px 72px rgb(23 25 28 / 24%);
+}
+
+.studio-modal > header {
+  display: flex;
+  min-height: 76px;
+  padding: 16px 18px 14px 22px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.studio-modal h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.studio-modal form {
+  display: grid;
+  padding: 22px;
+  gap: 18px;
+}
+
+.studio-modal .studio-field {
+  grid-template-columns: 1fr;
+}
+
+.studio-modal .studio-field > span:first-child {
+  display: grid;
+  justify-content: start;
+  gap: 3px;
+}
+
+.studio-modal .studio-field small {
+  text-align: left;
+}
+
+.studio-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
 }
 
 .studio-sidebar,

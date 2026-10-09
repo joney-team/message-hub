@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb } from '@/server/db/client';
 import { channels, webhookDeliveries } from '@/server/db/schema';
-import { requireApiKey } from '@/server/http/auth';
+import { requireManagement } from '@/server/http/auth';
 import { handle, json } from '@/server/http/errors';
 import { pageQuery } from '@/server/http/pagination';
 import { readQuery } from '@/server/http/validate';
@@ -16,9 +16,9 @@ const query = pageQuery.extend({
 });
 
 export const GET = handle((req) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   const q = readQuery(req, query);
-  const conds = [eq(channels.owner, owner)];
+  const conds = owner === null ? [] : [eq(channels.owner, owner)];
   if (q.status) conds.push(eq(webhookDeliveries.status, q.status));
   if (q.channelId) conds.push(eq(webhookDeliveries.channelId, q.channelId));
   const rows = getDb()

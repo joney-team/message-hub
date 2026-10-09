@@ -1,6 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '../db/client';
 import { channels, visitors } from '../db/schema';
+import type { OwnerScope } from '../http/auth';
 import { notFound } from '../http/errors';
 import { getOwnedChannel } from './channels';
 
@@ -31,7 +32,7 @@ export function serializeVisitor(v: VisitorRow): VisitorDto {
   };
 }
 
-export function listVisitors(owner: string, channelId: string, opts: { limit: number; offset: number }) {
+export function listVisitors(owner: OwnerScope, channelId: string, opts: { limit: number; offset: number }) {
   getOwnedChannel(owner, channelId);
   const rows = getDb()
     .select()
@@ -45,12 +46,12 @@ export function listVisitors(owner: string, channelId: string, opts: { limit: nu
 }
 
 /** Visitor of a channel owned by `owner`; anything else is a 404. */
-export function getOwnedVisitor(owner: string, id: string): { visitor: VisitorRow; channel: ChannelRow } {
+export function getOwnedVisitor(owner: OwnerScope, id: string): { visitor: VisitorRow; channel: ChannelRow } {
   const row = getDb()
     .select({ visitor: visitors, channel: channels })
     .from(visitors)
     .innerJoin(channels, eq(channels.id, visitors.channelId))
-    .where(and(eq(visitors.id, id), eq(channels.owner, owner)))
+    .where(owner === null ? eq(visitors.id, id) : and(eq(visitors.id, id), eq(channels.owner, owner)))
     .get();
   if (!row) throw notFound('VISITOR_NOT_FOUND', 'Visitor not found');
   return row;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requireApiKey } from '@/server/http/auth';
+import { requireManagement } from '@/server/http/auth';
 import { handle, json } from '@/server/http/errors';
 import { readQuery } from '@/server/http/validate';
 import { listConversations } from '@/server/services/conversations';
@@ -13,6 +13,6 @@ const listQuery = z.object({
 });
 
 export const GET = handle((req) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   return json(listConversations(owner, readQuery(req, listQuery)));
 });

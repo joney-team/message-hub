@@ -15,3 +15,5 @@
 | **LocalizedText** | `{ "vi": "…", "en": "…" }` — chuỗi nội dung thuộc về channel, lùi về `defaultLocale`. |
 | **Catalog** | Tập chuỗi giao diện theo ngôn ngữ (`src/i18n/messages/<locale>.json`); channel có thể ghi đè từng key (`content.overrides`). |
 | **API key** | Giá trị trong `API_KEYS`, gửi qua `Authorization: Bearer` cho `/api/v1/*`. |
+| **Studio password** | Mật khẩu đăng nhập Message Hub Studio tại `/`; mặc định `messagehub@sayhi`, lưu dưới dạng hash `scrypt` trong SQLite và đổi được bên trong Studio. |
+| **Studio session** | Session opaque của Studio, DB chỉ lưu SHA-256 token; browser nhận cookie `HttpOnly`, `SameSite=Strict`. Session có quyền quản trị mọi `owner`. |

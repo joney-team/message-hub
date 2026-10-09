@@ -62,6 +62,12 @@ Start from [.env.production.example](../.env.production.example).
 
 The image already sets `NODE_ENV=production`, `PORT=4200`, `HOSTNAME=0.0.0.0`, and `DATA_DIR=/data`.
 
+## Mật khẩu Studio
+
+Message Hub Studio tại `/` dùng mật khẩu mặc định `messagehub@sayhi` trên database mới. Sau khi đăng nhập, dùng nút hình chìa khóa trên toolbar của Studio để đổi mật khẩu ngay.
+
+Mật khẩu được lưu dưới dạng hash `scrypt` trong SQLite. Studio session là token opaque, DB chỉ lưu hash SHA-256, browser nhận qua cookie `HttpOnly`, `SameSite=Strict`, và mọi session cũ bị thu hồi khi đổi mật khẩu. Cần backup và bảo vệ `/data` vì thư mục này chứa cả dữ liệu ứng dụng lẫn trạng thái xác thực Studio.
+
 ## Reverse Proxy
 
 - Terminate TLS at the proxy.

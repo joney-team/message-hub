@@ -51,6 +51,14 @@ Then open:
 http://localhost:4200/demo.html?channel=<channel-id>
 ```
 
+Open Message Hub Studio at `http://localhost:4200` with the default password:
+
+```text
+messagehub@sayhi
+```
+
+Change this password from the key icon in Studio after signing in.
+
 ## Docker
 
 ```bash
@@ -117,6 +125,7 @@ Customer website
 
 Main application
   ├─ /api/v1/*                API key
+  ├─ Studio /                 password + HttpOnly session
   └─ signed webhooks          transactional outbox
 
 Message Hub
@@ -131,6 +140,7 @@ This project is provided as self-hosted software. Operators are responsible for:
 
 - TLS, DNS, reverse-proxy configuration, and network access
 - Generating, storing, and rotating API keys and webhook secrets
+- Changing the default Studio password after first sign-in
 - Persistent storage, backups, restores, retention, and disaster recovery
 - Monitoring, upgrades, vulnerability patching, and availability
 - Reviewing uploaded content and adding malware scanning when required

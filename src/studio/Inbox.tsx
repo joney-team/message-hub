@@ -13,30 +13,12 @@ import {
 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  formatApiError,
-  type ApiErrorBody,
   type ChannelDto,
   type ConversationDto,
   type StudioMessageDto,
 } from './types';
 import { tokenize } from '@/widget/linkify';
-
-async function api<T>(path: string, key: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set('Authorization', `Bearer ${key}`);
-  if (init?.body) headers.set('Content-Type', 'application/json');
-  const response = await fetch(path, { ...init, headers, cache: 'no-store' });
-  if (!response.ok) {
-    let body: ApiErrorBody | null = null;
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      // The HTTP status is enough when a proxy returns a non-JSON error.
-    }
-    throw new Error(formatApiError(response.status, body));
-  }
-  return (await response.json()) as T;
-}
+import { studioApi } from './api';
 
 function visitorName(conversation: ConversationDto): string {
   const profile = conversation.visitor.profile;
@@ -82,7 +64,7 @@ function MessageText({ text }: { text: string }) {
   );
 }
 
-export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelDto[] }) {
+export function Inbox({ channels }: { channels: ChannelDto[] }) {
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [channelId, setChannelId] = useState('all');
@@ -124,9 +106,8 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
       setListError(null);
       try {
         const filter = channelId === 'all' ? '' : `&channelId=${encodeURIComponent(channelId)}`;
-        const result = await api<{ data: ConversationDto[]; hasMore: boolean }>(
+        const result = await studioApi<{ data: ConversationDto[]; hasMore: boolean }>(
           `/api/v1/conversations?limit=100${filter}`,
-          apiKey,
         );
         if (request !== listRequest.current) return;
         setConversations(result.data);
@@ -145,7 +126,7 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
         if (request === listRequest.current) setLoading(false);
       }
     },
-    [apiKey, channelId, selectConversation],
+    [channelId, selectConversation],
   );
 
   useEffect(() => {
@@ -163,9 +144,8 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
       if (!quiet) setHistoryLoading(true);
       setHistoryError(null);
       try {
-        const result = await api<{ data: StudioMessageDto[]; hasMore: boolean }>(
+        const result = await studioApi<{ data: StudioMessageDto[]; hasMore: boolean }>(
           `/api/v1/visitors/${encodeURIComponent(visitorId)}/messages?limit=50`,
-          apiKey,
         );
         if (request !== historyRequest.current) return;
         setMessages((current) => {
@@ -189,7 +169,7 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
         if (request === historyRequest.current) setHistoryLoading(false);
       }
     },
-    [apiKey],
+    [],
   );
 
   useEffect(() => {
@@ -230,9 +210,8 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
     const element = messageList.current;
     const previousHeight = element?.scrollHeight ?? 0;
     try {
-      const result = await api<{ data: StudioMessageDto[]; hasMore: boolean }>(
+      const result = await studioApi<{ data: StudioMessageDto[]; hasMore: boolean }>(
         `/api/v1/visitors/${encodeURIComponent(visitorId)}/messages?limit=50&before=${messages[0].seq}`,
-        apiKey,
       );
       if (request !== historyRequest.current) return;
       setMessages((current) => [...result.data, ...current]);
@@ -254,9 +233,8 @@ export function Inbox({ apiKey, channels }: { apiKey: string; channels: ChannelD
     setSending(true);
     setHistoryError(null);
     try {
-      const message = await api<StudioMessageDto>(
+      const message = await studioApi<StudioMessageDto>(
         `/api/v1/visitors/${encodeURIComponent(selectedVisitorId)}/messages`,
-        apiKey,
         {
           method: 'POST',
           body: JSON.stringify({

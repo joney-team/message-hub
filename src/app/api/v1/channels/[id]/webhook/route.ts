@@ -1,4 +1,4 @@
-import { requireApiKey } from '@/server/http/auth';
+import { requireManagement } from '@/server/http/auth';
 import { handle, json } from '@/server/http/errors';
 import { readJson } from '@/server/http/validate';
 import { serializeChannel, updateWebhook, updateWebhookBody } from '@/server/services/channels';
@@ -6,7 +6,7 @@ import { serializeChannel, updateWebhook, updateWebhookBody } from '@/server/ser
 export const dynamic = 'force-dynamic';
 
 export const PUT = handle<{ id: string }>(async (req, { id }) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   const body = await readJson(req, updateWebhookBody);
   return json(serializeChannel(updateWebhook(owner, id, body)));
 });

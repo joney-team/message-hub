@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requireApiKey } from '@/server/http/auth';
+import { requireManagement } from '@/server/http/auth';
 import { badRequest, handle, json } from '@/server/http/errors';
 import { readJson, readQuery } from '@/server/http/validate';
 import {
@@ -32,13 +32,13 @@ const sendBody = z
   .strict();
 
 export const GET = handle<P>((req, { id }) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   getOwnedVisitor(owner, id);
   return json(listMessages(id, readQuery(req, listQuery)));
 });
 
 export const POST = handle<P>(async (req, { id }) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   const { visitor, channel } = getOwnedVisitor(owner, id);
   const body = await readJson(req, sendBody);
   const attachments = resolveAttachments(channel.id, null, body.attachments.map((a) => a.fileId));
@@ -48,7 +48,7 @@ export const POST = handle<P>(async (req, { id }) => {
 });
 
 export const DELETE = handle<P>((req, { id }) => {
-  const owner = requireApiKey(req);
+  const owner = requireManagement(req);
   getOwnedVisitor(owner, id);
   deleteConversation(id);
   return new Response(null, { status: 204 });

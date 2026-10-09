@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { getDb, getSqlite } from '@/server/db/client';
-import { channels, files, messages, visitors, webhookDeliveries } from '@/server/db/schema';
+import { channels, files, messages, studioCredentials, studioSessions, visitors, webhookDeliveries } from '@/server/db/schema';
 import { createMessage } from '@/server/services/messages';
 import { insertChannel, insertVisitor, useTestDb } from './helpers';
 // @ts-expect-error plain ESM script without types
@@ -34,12 +34,27 @@ describe('reset data script', () => {
       .values({ id: 'file_test', channelId: channel.id, visitorId: visitor.id, name: 'test.txt', mime: 'text/plain', size: 6, createdAt: new Date() })
       .run();
     createMessage({ channel, visitor, direction: 'inbound', text: 'hello', attachments: [] });
+    getDb().insert(studioCredentials).values({ id: 1, passwordHash: 'test', updatedAt: new Date() }).run();
+    getDb()
+      .insert(studioSessions)
+      .values({ tokenHash: 'test', expiresAt: new Date(Date.now() + 60_000), createdAt: new Date() })
+      .run();
 
     const migrationsBefore = getSqlite().prepare('select count(*) as count from __drizzle_migrations').get() as { count: number };
     const result = resetApplicationData(getSqlite(), dataDir);
 
-    expect(result.counts).toMatchObject({ channels: 1, visitors: 1, messages: 1, files: 1, webhook_deliveries: 1 });
-    for (const table of [channels, visitors, messages, files, webhookDeliveries]) expect(getDb().select().from(table).all()).toHaveLength(0);
+    expect(result.counts).toMatchObject({
+      channels: 1,
+      visitors: 1,
+      messages: 1,
+      files: 1,
+      webhook_deliveries: 1,
+      studio_credentials: 1,
+      studio_sessions: 1,
+    });
+    for (const table of [channels, visitors, messages, files, webhookDeliveries, studioCredentials, studioSessions]) {
+      expect(getDb().select().from(table).all()).toHaveLength(0);
+    }
     expect(fs.readdirSync(uploads)).toEqual([]);
     expect(fs.readFileSync(path.join(backups, 'hub.db'), 'utf8')).toBe('backup');
     expect(getSqlite().prepare('select count(*) as count from __drizzle_migrations').get()).toEqual(migrationsBefore);

@@ -4,9 +4,9 @@ title: Tùy biến cho dự án chính
 domain: message-hub
 category: Integration
 status: stable
-version: 1.0.8
+version: 1.0.9
 owner: maintainers
-last_verified: 2026-10-08
+last_verified: 2026-10-09
 modules: [src/settings, src/widget/theme.ts, src/widget/components/PreChat.tsx, src/app/api/v1/meta, src/studio, src/loader]
 entities: [channels]
 routes: [GET /api/v1/meta, PATCH /api/v1/channels/[id], "GET /w/[channelId]?preview=1"]
@@ -20,7 +20,7 @@ related_features: [channels, i18n, widget-sdk]
 
 ### Tổng quan
 
-Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần. Message Hub cũng có Message Hub Studio tại `/` để người vận hành thực hiện luồng này trực tiếp bằng API key.
+Ứng dụng chính tùy biến được giao diện và nội dung widget mà không cần biết chi tiết bên trong Message Hub: lấy schema từ `meta`, dựng form, xem trước trực tiếp trong iframe, rồi `PATCH` từng phần. Message Hub cũng có Message Hub Studio tại `/` để người vận hành đăng nhập bằng mật khẩu và thực hiện luồng này trực tiếp.
 
 ### Quyết định sản phẩm
 

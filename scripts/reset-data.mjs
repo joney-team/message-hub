@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 
 const CONFIRMATION = '--confirm-reset';
-const APP_TABLES = ['webhook_deliveries', 'messages', 'files', 'visitors', 'channels'];
+const APP_TABLES = ['studio_sessions', 'studio_credentials', 'webhook_deliveries', 'messages', 'files', 'visitors', 'channels'];
 const SEQUENCE_TABLES = ['webhook_deliveries', 'messages'];
 
 export function resetApplicationData(db, dataDir) {
